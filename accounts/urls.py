@@ -6,6 +6,7 @@ app_name = 'accounts'
 urlpatterns = [
     # Dashboard
     path('', views.home, name='home'),
+    
 
     # Customer Management
     path('customers/', views.customer_list, name='customer_list'),
