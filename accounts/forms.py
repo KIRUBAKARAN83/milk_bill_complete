@@ -4,11 +4,18 @@ from .models import Customer, MilkEntry
 class CustomerForm(forms.ModelForm):
     class Meta:
         model = Customer
-        fields = ['name', 'phone', 'whatsapp_number']
+        fields = ['name', 'balance_amount']
         widgets = {
-            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter customer name'}),
-            'phone': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter phone number'}),
-            'whatsapp_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '+919xxxxxxxxx'}),
+            'name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter customer name'
+            }),
+            'balance_amount': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter balance amount',
+                'step': '0.01',
+                'min': '0'
+            }),
         }
 
 class MilkEntryForm(forms.ModelForm):
@@ -41,22 +48,27 @@ class MilkEntryForm(forms.ModelForm):
                 'class': 'form-control',
                 'min': '0',
                 'step': '1',
-                'placeholder': 'Enter quantity in ml',
+                'placeholder': 'Enter quantity in ml (0 allowed)',
                 'id': 'id_quantity_input'
             }),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # populate customer choices with all customers
         self.fields['customer'].queryset = Customer.objects.all().order_by('name')
-        # make customer optional (user can create new)
         self.fields['customer'].required = False
 
     def clean(self):
         cleaned = super().clean()
         cust = cleaned.get('customer')
         cust_name = cleaned.get('customer_name')
+        qty = cleaned.get('quantity_ml')
+        
         if not cust and not cust_name:
             raise forms.ValidationError("Please select an existing customer or enter a new customer name.")
+        
+        # Allow 0 quantity
+        if qty is None:
+            raise forms.ValidationError("Quantity is required.")
+        
         return cleaned

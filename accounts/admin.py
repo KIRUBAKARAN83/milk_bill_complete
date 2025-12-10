@@ -3,8 +3,9 @@ from .models import Customer, MilkEntry
 
 @admin.register(Customer)
 class CustomerAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'phone', 'whatsapp_number', 'created_at')
-    search_fields = ('name', 'phone', 'whatsapp_number')
+    list_display = ('id', 'name', 'balance_amount', 'created_at')
+    search_fields = ('name',)
+    fields = ('name', 'balance_amount')
 
 @admin.register(MilkEntry)
 class MilkEntryAdmin(admin.ModelAdmin):

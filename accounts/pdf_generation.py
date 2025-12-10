@@ -6,6 +6,7 @@ from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
 from datetime import datetime
 from io import BytesIO
+from decimal import Decimal
 
 def generate_bill_pdf(customer, entries, total_ml, total_litres, total_amount, price_per_litre, year=None, month=None):
     """
@@ -47,7 +48,7 @@ def generate_bill_pdf(customer, entries, total_ml, total_litres, total_amount, p
     # Build PDF content
     elements = []
     
-    # Title (without emoji for PDF compatibility)
+    # Title
     title = Paragraph("MILK BILLING INVOICE", title_style)
     elements.append(title)
     elements.append(Spacer(1, 0.2*inch))
@@ -64,15 +65,13 @@ def generate_bill_pdf(customer, entries, total_ml, total_litres, total_amount, p
     # Customer Details
     elements.append(Paragraph("<b>Customer Details</b>", heading_style))
     
-    # Safe get customer data
+    # Safe get customer data (no phone/whatsapp anymore)
     cust_name = customer.name if customer.name else "N/A"
-    cust_phone = customer.phone if customer.phone else "N/A"
-    cust_whatsapp = customer.whatsapp_number if hasattr(customer, 'whatsapp_number') and customer.whatsapp_number else "N/A"
+    cust_balance = customer.balance_amount if customer.balance_amount else 0
     
     cust_data = [
         ['Name:', cust_name],
-        ['Phone:', cust_phone],
-        ['WhatsApp:', cust_whatsapp],
+        ['Balance Amount:', f"₹ {float(cust_balance):.2f}"],
     ]
     cust_table = Table(cust_data, colWidths=[1.5*inch, 3.5*inch])
     cust_table.setStyle(TableStyle([
@@ -91,7 +90,7 @@ def generate_bill_pdf(customer, entries, total_ml, total_litres, total_amount, p
     # Milk Entries Table
     elements.append(Paragraph("<b>Milk Entries</b>", heading_style))
     
-    table_data = [['Date', 'Qty (ml)', 'Litres', 'Price/L (Rs)', 'Amount (Rs)']]
+    table_data = [['Date', 'Qty (ml)', 'Litres', 'Price/L (₹)', 'Amount (₹)']]
     
     if entries.exists():
         for entry in entries:
@@ -99,8 +98,8 @@ def generate_bill_pdf(customer, entries, total_ml, total_litres, total_amount, p
                 entry.date.strftime('%d-%m-%Y'),
                 str(entry.quantity_ml),
                 f"{float(entry.litres):.3f}",
-                f"Rs {price_per_litre}",
-                f"Rs {float(entry.amount):.2f}"
+                f"₹ {price_per_litre}",
+                f"₹ {float(entry.amount):.2f}"
             ])
     else:
         table_data.append(['No entries found', '', '', '', ''])
@@ -110,8 +109,8 @@ def generate_bill_pdf(customer, entries, total_ml, total_litres, total_amount, p
         'TOTAL',
         str(total_ml),
         f"{float(total_litres):.2f}",
-        f"Rs {price_per_litre}",
-        f"Rs {float(total_amount):.2f}"
+        f"₹ {price_per_litre}",
+        f"₹ {float(total_amount):.2f}"
     ])
     
     # Create table with styling
@@ -133,22 +132,24 @@ def generate_bill_pdf(customer, entries, total_ml, total_litres, total_amount, p
     elements.append(entries_table)
     elements.append(Spacer(1, 0.3*inch))
     
-    # Summary
+    # Summary with Balance
     summary_data = [
         ['Total Quantity:', f"{total_ml} ml"],
         ['Total Litres:', f"{float(total_litres)} L"],
-        ['Rate per Litre:', f"Rs {price_per_litre}"],
-        ['TOTAL AMOUNT:', f"Rs {float(total_amount):.2f}"],
+        ['Rate per Litre:', f"₹ {price_per_litre}"],
+        ['Total Amount Due:', f"₹ {float(total_amount):.2f}"],
+        ['Balance Amount:', f"₹ {float(cust_balance):.2f}"],
     ]
     summary_table = Table(summary_data, colWidths=[2.5*inch, 2*inch])
     summary_table.setStyle(TableStyle([
         ('ALIGN', (0, 0), (0, -1), 'RIGHT'),
         ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
         ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
-        ('FONTSIZE', (0, 0), (-1, -2), 10),
-        ('FONTSIZE', (0, -1), (-1, -1), 12),
-        ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
-        ('TEXTCOLOR', (0, -1), (-1, -1), colors.HexColor('#28a745')),
+        ('FONTSIZE', (0, 0), (-1, -3), 10),
+        ('FONTSIZE', (0, -2), (-1, -1), 11),
+        ('FONTNAME', (0, -2), (-1, -1), 'Helvetica-Bold'),
+        ('TEXTCOLOR', (0, -2), (-1, -2), colors.HexColor('#28a745')),
+        ('TEXTCOLOR', (0, -1), (-1, -1), colors.HexColor('#0056b3')),
         ('TOPPADDING', (0, 0), (-1, -1), 10),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
         ('GRID', (0, 0), (-1, -1), 0.5, colors.lightgrey),
@@ -157,7 +158,7 @@ def generate_bill_pdf(customer, entries, total_ml, total_litres, total_amount, p
     elements.append(Spacer(1, 0.3*inch))
     
     # Footer
-    footer = Paragraph("<i>Thank you for your business! For queries, contact us.</i>", 
+    footer = Paragraph("<i>Thank you for your business!</i>", 
                       ParagraphStyle('footer', parent=styles['Normal'], fontSize=9, alignment=TA_CENTER))
     elements.append(footer)
     

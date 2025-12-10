@@ -20,6 +20,7 @@
                     <tr>
                         <th>Name</th>
                         <th class="text-end">Total Milk (L)</th>
+                        <th class="text-end">Balance Amount (₹)</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -28,6 +29,9 @@
                     <tr>
                         <td>{{ customer.name }}</td>
                         <td class="text-end">{{ customer.total_litres }}</td>
+                        <td class="text-end {% if customer.balance_amount > 0 %}text-success{% elif customer.balance_amount < 0 %}text-danger{% endif %}">
+                            ₹ {{ customer.balance_amount|floatformat:2 }}
+                        </td>
                         <td>
                             <a href="{% url 'accounts:customer_detail' customer.id %}" class="btn btn-sm btn-info">📋 View</a>
                             <a href="{% url 'accounts:edit_customer' customer.id %}" class="btn btn-sm btn-warning">✏️ Edit</a>

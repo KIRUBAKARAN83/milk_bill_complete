@@ -22,7 +22,7 @@
     <div class="row mb-4">
       <div class="col-md-4"><div class="card"><div class="card-body"><h6>Total Customers</h6><h3>{{ total_customers }}</h3></div></div></div>
       <div class="col-md-4"><div class="card"><div class="card-body"><h6>Total Milk (L)</h6><h3>{{ total_litres }}</h3></div></div></div>
-      <div class="col-md-4"><div class="card"><div class="card-body"><h6>Total Amount (₹)</h6><h3>₹ {{ total_amount }}</h3></div></div></div>
+      <div class="col-md-4"><div class="card"><div class="card-body"><h6>Total Balance (₹)</h6><h3 class="{% if total_balance > 0 %}text-success{% elif total_balance < 0 %}text-danger{% endif %}">₹ {{ total_balance }}</h3></div></div></div>
     </div>
 
     <div class="card">

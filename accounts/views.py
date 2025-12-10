@@ -11,17 +11,18 @@ from .forms import MilkEntryForm, CustomerForm
 from .pdf_generation import generate_bill_pdf
 
 # Dashboard
+# ...existing code...
 def home(request):
     try:
         total_customers = Customer.objects.count()
         total_ml = MilkEntry.objects.aggregate(total=Sum('quantity_ml'))['total'] or 0
         total_litres = round(Decimal(total_ml) / Decimal(1000), 2) if total_ml else Decimal(0)
-        total_amount = round((Decimal(total_ml) / Decimal(1000)) * Decimal(PRICE_PER_LITRE), 2) if total_ml else Decimal(0)
+        total_balance = Customer.objects.aggregate(balance=Sum('balance_amount'))['balance'] or Decimal(0)
         last_entries = MilkEntry.objects.select_related('customer').order_by('-date')[:10]
         context = {
             'total_customers': total_customers,
             'total_litres': total_litres,
-            'total_amount': total_amount,
+            'total_balance': round(total_balance, 2),
             'last_entries': last_entries,
         }
         return render(request, 'accounts/home.html', context)
@@ -29,12 +30,11 @@ def home(request):
         return render(request, 'accounts/home.html', {
             'total_customers': 0,
             'total_litres': 0,
-            'total_amount': 0,
+            'total_balance': 0,
             'last_entries': [],
             'error': str(e)
         })
 
-# Customer List
 def customer_list(request):
     customers = Customer.objects.all()
     for customer in customers:
@@ -42,6 +42,7 @@ def customer_list(request):
         customer.total_ml = total_ml
         customer.total_litres = round(Decimal(total_ml) / Decimal(1000), 2) if total_ml else Decimal(0)
     return render(request, 'accounts/customer_list.html', {'customers': customers})
+# ...rest of views...
 
 # Customer Detail with month-wise records
 def customer_detail(request, customer_id):
