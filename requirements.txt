@@ -115,5 +115,4 @@ whitenoise
 python-dotenv
 reportlab
 somepackage==1.2.3
-pip install --upgrade pip
-djangopip install --upgrade pip
+
