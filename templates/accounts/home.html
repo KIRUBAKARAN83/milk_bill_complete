@@ -103,7 +103,7 @@
       <a href="{% url 'accounts:customer_list' %}">👥 Customers</a>
       <a href="{% url 'accounts:add_entry' %}">➕ Add Entry</a>
       <a href="{% url 'accounts:monthly_summary' %}">📅 Monthly Summary</a>
-      <a href="{% url 'admin:index' %}">⚙️ Admin Panel</a>
+      
     </nav>
 
     <div class="sidebar-footer">
@@ -114,6 +114,7 @@
   <!-- Main Content -->
   <div class="main-content">
     <h2>📊 Dashboard</h2>
+    
     
     <div class="stats-cards">
       <div class="stat-card">
@@ -128,7 +129,14 @@
         <h6>Total Balance (₹)</h6>
         <h3 class="{% if total_balance > 0 %}text-success{% elif total_balance < 0 %}text-danger{% endif %}">₹ {{ total_balance }}</h3>
       </div>
+
+      <!-- NEW: Total Amount across all customers -->
+      <div class="stat-card">
+        <h6>Total Amount (₹)</h6>
+        <h3 class="text-primary">₹ {{ total_amount|floatformat:2 }}</h3>
+      </div>
     </div>
+
 
     <div class="card">
       <div class="card-header bg-primary text-white">

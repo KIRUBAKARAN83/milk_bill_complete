@@ -65,7 +65,7 @@ class MilkEntryForm(forms.ModelForm):
         qty = cleaned.get('quantity_ml')
         
         if not cust and not cust_name:
-            raise forms.ValidationError("Please select an existing customer or enter a new customer name.")
+            raise forms.ValidationError("Please select an existing customer or enter a customer name.")
         
         # Allow 0 quantity
         if qty is None:
