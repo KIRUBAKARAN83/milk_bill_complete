@@ -6,10 +6,10 @@ from decimal import Decimal
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-change-me-please')
-DEBUG = os.environ.get('DEBUG', 'false').lower() == 'true'
+DEBUG = false
 
 # ALLOWED_HOSTS from env or sensible defaults
-ALLOWED_HOSTS = ['localhost',https://milkbill.onrender.com]
+ALLOWED_HOSTS = ['localhost','https://milkbill.onrender.com']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
