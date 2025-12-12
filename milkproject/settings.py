@@ -30,7 +30,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'milk_billing_complete.urls'
+ROOT_URLCONF = 'milkproject.urls'
 
 TEMPLATES = [
     {
