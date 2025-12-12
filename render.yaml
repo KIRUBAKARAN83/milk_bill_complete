@@ -16,7 +16,7 @@ services:
       - key: DJANGO_SUPERUSER_USERNAME
         value: kiruba_karan_123
       - key: DJANGO_SUPERUSER_PASSWORD
-        value:kiruba
+        value:kiruba@123
       - key: DJANGO_SUPERUSER_EMAIL
         value: dhayalankiruba17@mail.com
       - key: DJANGO_SETTINGS_MODULE
