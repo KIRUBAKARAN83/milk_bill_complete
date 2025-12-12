@@ -10,7 +10,7 @@ services:
       python manage.py createsuperuser --noinput || true
       python manage.py collectstatic --noinput
 
-    startCommand: gunicorn milk_billing_complete\milkproject.wsgi:application
+    startCommand: gunicorn milkproject.wsgi:application
 
     envVars:
       - key: DJANGO_SUPERUSER_USERNAME
@@ -20,6 +20,6 @@ services:
       - key: DJANGO_SUPERUSER_EMAIL
         value: dhayalankiruba17@mail.com
       - key: DJANGO_SETTINGS_MODULE
-        value: milk_billing_complete\milkproject.settings
+        value: milkproject.settings
       - key: PYTHON_VERSION
         value: 3.10
