@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: milk-billing
+    env: python
+    plan: free
+    buildCommand: "pip install -r requirements.txt && python manage.py collectstatic --noinput"
+    startCommand: "gunicorn milk_billing_complete\milkproject.wsgi:application"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10
+      - key: DJANGO_SETTINGS_MODULE
+        value: milk_billing_complete\milkproject.settings
