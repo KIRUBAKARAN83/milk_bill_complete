@@ -3,10 +3,23 @@ services:
     name: milk-billing
     env: python
     plan: free
-    buildCommand: "pip install -r requirements.txt && python manage.py collectstatic --noinput"
-    startCommand: "gunicorn milk_billing_complete\milkproject.wsgi:application"
+
+    buildCommand: |
+      pip install -r requirements.txt
+      python manage.py migrate --noinput
+      python manage.py createsuperuser --noinput || true
+      python manage.py collectstatic --noinput
+
+    startCommand: gunicorn milk_billing_complete.wsgi:application
+
     envVars:
-      - key: PYTHON_VERSION
-        value: 3.10
+      - key: DJANGO_SUPERUSER_USERNAME
+        value: kiruba_karan
+      - key: DJANGO_SUPERUSER_PASSWORD
+        value:kiruba123
+      - key: DJANGO_SUPERUSER_EMAIL
+        value: dhayalankiruba17@mail.com
       - key: DJANGO_SETTINGS_MODULE
         value: milk_billing_complete\milkproject.settings
+      - key: PYTHON_VERSION
+        value: 3.10
