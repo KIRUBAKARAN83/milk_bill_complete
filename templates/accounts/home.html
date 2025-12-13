@@ -6,7 +6,10 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Milk Billing Dashboard</title>
 
+  <!-- Bootstrap -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
 
   <style>
     body {
@@ -20,36 +23,38 @@
     .sidebar {
       width: 260px;
       min-height: 100vh;
-      background: linear-gradient(180deg, #312e81, #1e293b);
+      background: linear-gradient(180deg, #064e3b, #022c22);
       position: fixed;
       left: 0;
       top: 0;
-      color: #e0e7ff;
+      color: #d1fae5;
       display: flex;
       flex-direction: column;
     }
 
     .sidebar-header {
       padding: 22px;
-      border-bottom: 1px solid rgba(255,255,255,0.12);
+      border-bottom: 1px solid rgba(255,255,255,0.15);
     }
 
     .sidebar-header h4 {
       margin: 0;
       font-size: 18px;
       font-weight: 700;
-      color: #ffffff;
+      color: #ecfdf5;
     }
 
     .sidebar-header small {
-      color: #c7d2fe;
+      color: #a7f3d0;
     }
 
     /* Sidebar Nav */
     .sidebar-nav a {
-      display: block;
+      display: flex;
+      align-items: center;
+      gap: 12px;
       padding: 13px 22px;
-      color: #e0e7ff;
+      color: #d1fae5;
       text-decoration: none;
       font-size: 14px;
       border-left: 3px solid transparent;
@@ -62,51 +67,42 @@
         border-left-color 0.25s ease;
     }
 
+    .sidebar-nav i {
+      font-size: 16px;
+      opacity: 0.9;
+    }
+
     .sidebar-nav a:hover {
-      background: rgba(255,255,255,0.10);
-      border-left-color: #22d3ee;
-      color: #ffffff;
+      background: rgba(34,197,94,0.18);
+      border-left-color: #22c55e;
+      color: #ecfdf5;
       transform: translateX(4px);
     }
 
     .sidebar-nav a:active {
       transform: translateX(2px) scale(0.98);
-      background: rgba(34,211,238,0.18);
-      box-shadow: inset 0 0 0 1px rgba(34,211,238,0.4);
+      background: rgba(34,197,94,0.28);
     }
 
     .sidebar-nav a.active {
-      background: rgba(34,211,238,0.18);
-      border-left-color: #22d3ee;
-      color: #ffffff;
-      box-shadow: inset 0 0 0 1px rgba(34,211,238,0.35);
+      background: rgba(34,197,94,0.28);
+      border-left-color: #22c55e;
+      color: #ecfdf5;
+      box-shadow: inset 0 0 0 1px rgba(34,197,94,0.4);
     }
 
-    .sidebar-nav a::after {
-      content: "";
-      position: absolute;
-      left: 22px;
-      bottom: 8px;
-      width: 0;
-      height: 2px;
-      background: linear-gradient(90deg, #22d3ee, #6366f1);
-      transition: width 0.25s ease;
-    }
-
-    .sidebar-nav a:hover::after,
-    .sidebar-nav a.active::after {
-      width: calc(100% - 44px);
-    }
-
-    /* Sidebar Footer */
+    /* Logout */
     .sidebar-footer {
       padding: 18px;
-      border-top: 1px solid rgba(255,255,255,0.12);
+      border-top: 1px solid rgba(255,255,255,0.15);
+      margin-top: auto;
     }
 
     .sidebar-footer a {
-      display: block;
-      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
       padding: 10px;
       border-radius: 8px;
       background: linear-gradient(135deg, #ef4444, #dc2626);
@@ -123,6 +119,26 @@
     .main-content {
       margin-left: 260px;
       padding: 32px;
+    }
+
+    /* Page transition */
+    .page-wrapper {
+      opacity: 0;
+      transform: translateY(12px);
+      animation: pageFadeIn 0.35s ease forwards;
+    }
+
+    @keyframes pageFadeIn {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .page-exit {
+      opacity: 0;
+      transform: translateY(-10px);
+      transition: opacity 0.25s ease, transform 0.25s ease;
     }
 
     .page-title {
@@ -153,7 +169,7 @@
       position: absolute;
       inset: auto 0 0 0;
       height: 4px;
-      background: linear-gradient(90deg, #22d3ee, #6366f1);
+      background: linear-gradient(90deg, #22c55e, #16a34a);
     }
 
     .stat-card h6 {
@@ -171,7 +187,7 @@
       color: #0f172a;
     }
 
-    /* Table Card */
+    /* Table */
     .card {
       border: none;
       border-radius: 14px;
@@ -179,7 +195,7 @@
     }
 
     .card-header {
-      background: linear-gradient(90deg, #6366f1, #22d3ee);
+      background: linear-gradient(90deg, #16a34a, #22c55e);
       color: #ffffff;
       border-radius: 14px 14px 0 0;
       padding: 16px 22px;
@@ -222,32 +238,34 @@
     <nav class="sidebar-nav">
       <a href="{% url 'accounts:home' %}"
          class="{% if request.path == '/' %}active{% endif %}">
-         Dashboard
+        <i class="bi bi-speedometer2"></i> Dashboard
       </a>
 
       <a href="{% url 'accounts:customer_list' %}"
          class="{% if 'customer' in request.path %}active{% endif %}">
-         Customers
+        <i class="bi bi-people"></i> Customers
       </a>
 
       <a href="{% url 'accounts:add_entry' %}"
          class="{% if 'add' in request.path %}active{% endif %}">
-         Add Entry
+        <i class="bi bi-plus-circle"></i> Add Entry
       </a>
 
       <a href="{% url 'accounts:monthly_summary' %}"
          class="{% if 'monthly' in request.path %}active{% endif %}">
-         Monthly Summary
+        <i class="bi bi-calendar-month"></i> Monthly Summary
       </a>
     </nav>
 
     <div class="sidebar-footer">
-      <a href="{% url 'logout' %}">Logout</a>
+      <a href="{% url 'logout' %}">
+        <i class="bi bi-box-arrow-right"></i> Logout
+      </a>
     </div>
   </aside>
 
-  <!-- Main Content -->
-  <main class="main-content">
+  <!-- Main -->
+  <main class="main-content page-wrapper">
     <h2 class="page-title">Dashboard Overview</h2>
 
     <div class="stats-cards">
@@ -275,9 +293,7 @@
     </div>
 
     <div class="card">
-      <div class="card-header">
-        Recent Milk Entries
-      </div>
+      <div class="card-header">Recent Milk Entries</div>
       <div class="card-body p-0">
         <table class="table mb-0 align-middle">
           <thead>
@@ -309,9 +325,22 @@
         </table>
       </div>
     </div>
-
   </main>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Page transition JS -->
+  <script>
+    document.querySelectorAll('.sidebar-nav a').forEach(link => {
+      link.addEventListener('click', function (e) {
+        if (this.classList.contains('active')) return;
+        e.preventDefault();
+        const target = this.href;
+        document.querySelector('.page-wrapper').classList.add('page-exit');
+        setTimeout(() => {
+          window.location.href = target;
+        }, 250);
+      });
+    });
+  </script>
+
 </body>
 </html>
