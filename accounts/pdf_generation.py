@@ -132,7 +132,7 @@ def generate_bill_pdf(
         table_data.append(["No entries", "", "", "", ""])
 
     table_data.append([
-        "TOTAL (This Month)",
+        "TOTAL",
         str(total_ml),
         f"{total_litres:.2f}",
         f"{Decimal(price_per_litre):.2f}",
