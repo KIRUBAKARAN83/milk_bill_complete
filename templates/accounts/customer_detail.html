@@ -23,32 +23,37 @@ body{background:#f4f6f9}
 
 <!-- HEADER -->
 <div class="card fade-card p-3 mb-3">
-  <div class="d-flex justify-content-between">
+  <div class="d-flex justify-content-between align-items-center">
     <div>
-      <h4>{{ customer.name }}</h4>
+      <h4 class="mb-1">{{ customer.name }}</h4>
       <small>
         Balance: ₹ <span id="balanceAmount">{{ customer.balance_amount|floatformat:2 }}</span>
       </small>
     </div>
     <div class="d-flex gap-2">
-      <a href="{% url 'accounts:send_bill_whatsapp' customer.id month.year month.month %}"
-   class="btn btn-success btn-sm">
-   💬 WhatsApp
-</a>
-
       <a href="{% url 'accounts:add_entry' %}" class="btn btn-primary btn-sm">➕ Add</a>
-      <a href="{% url 'accounts:bill_pdf' customer.id %}" class="btn btn-danger btn-sm">📄 Bill</a>
+      <a href="{% url 'accounts:bill_pdf' customer.id %}" class="btn btn-danger btn-sm">📄 Full Bill</a>
     </div>
   </div>
 </div>
 
-<!-- ENTRIES -->
+<!-- MONTHLY ENTRIES -->
 {% for month in months_data %}
 <div class="card fade-card mb-3">
-  <div class="card-header d-flex justify-content-between">
+  <div class="card-header d-flex justify-content-between align-items-center">
     <strong>{{ month.month_name }}</strong>
-    <a href="{% url 'accounts:bill_pdf_month' customer.id month.year month.month %}"
-       class="btn btn-outline-danger btn-sm">📥 PDF</a>
+    <div class="d-flex gap-2">
+      <a href="{% url 'accounts:bill_pdf_month' customer.id month.year month.month %}"
+         class="btn btn-outline-danger btn-sm">📥 PDF</a>
+
+      <form method="post"
+            action="{% url 'accounts:send_bill_whatsapp' customer.id month.year month.month %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-success btn-sm">
+          💬 WhatsApp
+        </button>
+      </form>
+    </div>
   </div>
 
   <table class="table table-sm mb-0">
@@ -84,6 +89,8 @@ body{background:#f4f6f9}
     </tbody>
   </table>
 </div>
+{% empty %}
+<div class="text-center text-muted">No entries found.</div>
 {% endfor %}
 
 <!-- CHART -->
@@ -108,8 +115,7 @@ let lastRestoreUrl = null;
 
 function getCSRFToken(){
   return document.cookie.split(';')
-    .find(c=>c.trim().startsWith('csrftoken='))
-    ?.split('=')[1];
+    .find(c=>c.trim().startsWith('csrftoken='))?.split('=')[1];
 }
 
 function deleteEntry(deleteUrl, restoreUrl, btn){
@@ -121,8 +127,7 @@ function deleteEntry(deleteUrl, restoreUrl, btn){
       "X-CSRFToken":getCSRFToken(),
       "X-Requested-With":"XMLHttpRequest"
     }
-  }).then(res=>res.json())
-    .then(data=>{
+  }).then(()=> {
       const row = btn.closest("tr");
       lastDeleted = row;
       lastRestoreUrl = restoreUrl;
@@ -134,7 +139,7 @@ function deleteEntry(deleteUrl, restoreUrl, btn){
       row.style.display="none";
       document.getElementById("undoToast").style.display="block";
       setTimeout(()=>document.getElementById("undoToast").style.display="none",6000);
-    });
+  });
 }
 
 function undoDelete(){
