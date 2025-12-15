@@ -215,15 +215,17 @@ def delete_customer(request, customer_id):
 def chart_data(request, customer_id):
     customer = get_object_or_404(Customer, id=customer_id)
 
-    entries = MilkEntry.objects.filter(
-        customer=customer,
-        is_deleted=False
-    ).order_by('date')[:30]
+    entries = (
+        MilkEntry.objects
+        .filter(customer=customer, is_deleted=False)
+        .order_by('date')[:30]
+    )
 
     return JsonResponse({
         'labels': [e.date.strftime('%Y-%m-%d') for e in entries],
-        'data': [float(e.litres) for e in entries]
+        'data': [float(e.litres) for e in entries],
     })
+
 
 
 # ---------------- PDF ----------------
