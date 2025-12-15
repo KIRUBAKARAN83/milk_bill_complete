@@ -66,7 +66,9 @@ def customer_list(request):
         )
         customer.total_litres = round(Decimal(total_ml) / Decimal(1000), 2)
 
-    return render(request, 'accounts/customer_list.html', {'customers': customers})
+    return render(request, 'accounts/customer_list.html', {
+        'customers': customers
+    })
 
 
 # ---------------- CUSTOMER DETAIL ----------------
@@ -75,10 +77,11 @@ def customer_list(request):
 def customer_detail(request, customer_id):
     customer = get_object_or_404(Customer, id=customer_id)
 
-    entries = MilkEntry.objects.filter(
-        customer=customer,
-        is_deleted=False
-    ).order_by('-date')
+    entries = (
+        MilkEntry.objects
+        .filter(customer=customer, is_deleted=False)
+        .order_by('-date')
+    )
 
     months_data = {}
 
@@ -154,11 +157,43 @@ def edit_entry(request, entry_id):
         form = MilkEntryForm(request.POST, instance=entry)
         if form.is_valid():
             form.save()
-            return redirect('accounts:customer_detail', customer_id=entry.customer.id)
+            return redirect(
+                'accounts:customer_detail',
+                customer_id=entry.customer.id
+            )
     else:
         form = MilkEntryForm(instance=entry)
 
     return render(request, 'accounts/entry_form.html', {'form': form})
+
+
+# ---------------- EDIT CUSTOMER ----------------
+
+@login_required(login_url='login')
+@require_http_methods(["GET", "POST"])
+def edit_customer(request, customer_id):
+    customer = get_object_or_404(Customer, id=customer_id)
+
+    if request.method == 'POST':
+        form = CustomerForm(request.POST, instance=customer)
+        if form.is_valid():
+            form.save()
+            return redirect(
+                'accounts:customer_detail',
+                customer_id=customer.id
+            )
+    else:
+        form = CustomerForm(instance=customer)
+
+    return render(
+        request,
+        'accounts/customer_form.html',
+        {
+            'form': form,
+            'customer': customer,
+            'title': 'Edit Customer'
+        }
+    )
 
 
 # ---------------- SOFT DELETE + RESTORE ----------------
@@ -205,11 +240,20 @@ def bill_pdf(request, customer_id, year=None, month=None):
     total_amount = total_litres * Decimal(PRICE_PER_LITRE)
 
     pdf_buffer = generate_bill_pdf(
-        customer, entries, total_ml, total_litres,
-        total_amount, PRICE_PER_LITRE, year, month
+        customer,
+        entries,
+        total_ml,
+        total_litres,
+        total_amount,
+        PRICE_PER_LITRE,
+        year,
+        month
     )
 
-    response = HttpResponse(pdf_buffer.getvalue(), content_type='application/pdf')
+    response = HttpResponse(
+        pdf_buffer.getvalue(),
+        content_type='application/pdf'
+    )
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     return response
 
@@ -233,20 +277,28 @@ def send_bill_whatsapp(request, customer_id, year, month):
     total_amount = total_litres * Decimal(PRICE_PER_LITRE)
 
     pdf_buffer = generate_bill_pdf(
-        customer, entries, total_ml, total_litres,
-        total_amount, PRICE_PER_LITRE, year, month
+        customer,
+        entries,
+        total_ml,
+        total_litres,
+        total_amount,
+        PRICE_PER_LITRE,
+        year,
+        month
     )
 
     filename = f"bills/bill_{customer.id}_{year}_{month}.pdf"
     file_content = ContentFile(pdf_buffer.getvalue())
     saved_path = default_storage.save(filename, file_content)
 
-    pdf_url = request.build_absolute_uri(settings.MEDIA_URL + saved_path)
+    pdf_url = request.build_absolute_uri(
+        settings.MEDIA_URL + saved_path
+    )
 
     month_name = datetime(year, month, 1).strftime('%B %Y')
 
     send_whatsapp_pdf(
-        phone_number=f"whatsapp:+91XXXXXXXXXX",  # replace later
+        phone_number="whatsapp:+91XXXXXXXXXX",  # replace later
         pdf_url=pdf_url,
         message=f"Hello {customer.name}, your milk bill for {month_name} is attached."
     )
@@ -260,16 +312,18 @@ def send_bill_whatsapp(request, customer_id, year, month):
 def monthly_summary(request):
     today = timezone.localdate()
     start_date = today.replace(day=1)
+
     end_date = (
         today.replace(month=today.month + 1, day=1) - timedelta(days=1)
         if today.month < 12 else
         today.replace(year=today.year + 1, month=1, day=1) - timedelta(days=1)
     )
 
-    entries = MilkEntry.objects.filter(
-        date__range=[start_date, end_date],
-        is_deleted=False
-    ).select_related('customer')
+    entries = (
+        MilkEntry.objects
+        .filter(date__range=[start_date, end_date], is_deleted=False)
+        .select_related('customer')
+    )
 
     summary = {}
 
@@ -300,26 +354,3 @@ def monthly_summary(request):
         'start': start_date,
         'end': end_date,
     })
-    @login_required(login_url='login')
-@require_http_methods(["GET", "POST"])
-def edit_customer(request, customer_id):
-    customer = get_object_or_404(Customer, id=customer_id)
-
-    if request.method == 'POST':
-        form = CustomerForm(request.POST, instance=customer)
-        if form.is_valid():
-            form.save()
-            return redirect('accounts:customer_detail', customer_id=customer.id)
-    else:
-        form = CustomerForm(instance=customer)
-
-    return render(
-        request,
-        'accounts/customer_form.html',
-        {
-            'form': form,
-            'customer': customer,
-            'title': 'Edit Customer'
-        }
-    )
-
