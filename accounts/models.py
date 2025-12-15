@@ -2,32 +2,43 @@ from django.db import models
 from django.utils import timezone
 from django.conf import settings
 from decimal import Decimal
+from django.db.models import Sum
+from django.db.models.functions import Lower
 
 PRICE_PER_LITRE = getattr(settings, 'PRICE_PER_LITRE', 50.0)
 
 
 class Customer(models.Model):
-    name = models.CharField(max_length=200, blank=True, null=True)
+    name = models.CharField(max_length=200)
     balance_amount = models.DecimalField(
         max_digits=10,
         decimal_places=2,
         default=0
     )
-    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
-    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
-
-    def __str__(self):
-        return self.name or "Unknown Customer"
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ['-created_at']
+        constraints = [
+            models.UniqueConstraint(
+                Lower('name'),
+                name='unique_customer_name_ci'
+            )
+        ]
 
-    # ✅ FIX: balance is now REAL, not stale
+    def __str__(self):
+        return self.name
+
     def recalculate_balance(self):
-        total = Decimal(0)
-        for entry in self.milk_entries.filter(is_deleted=False):
-            total += entry.amount
-        self.balance_amount = total
+        total_ml = (
+            self.milk_entries
+            .filter(is_deleted=False)
+            .aggregate(total=Sum('quantity_ml'))['total'] or 0
+        )
+
+        litres = Decimal(total_ml) / Decimal(1000)
+        self.balance_amount = litres * Decimal(PRICE_PER_LITRE)
         self.save(update_fields=['balance_amount'])
 
 
@@ -39,13 +50,15 @@ class MilkEntry(models.Model):
     )
 
     date = models.DateField(default=timezone.now)
-    quantity_ml = models.IntegerField(default=0)
+    quantity_ml = models.PositiveIntegerField(default=0)
 
-    # ✅ SOFT DELETE (USED EVERYWHERE IN VIEWS)
     is_deleted = models.BooleanField(default=False, db_index=True)
 
-    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
-    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-date']
 
     @property
     def litres(self):
@@ -56,7 +69,4 @@ class MilkEntry(models.Model):
         return self.litres * Decimal(PRICE_PER_LITRE)
 
     def __str__(self):
-        return f"{self.customer.name} - {self.date} - {self.quantity_ml}ml"
-
-    class Meta:
-        ordering = ['-date']
+        return f"{self.customer.name} | {self.date} | {self.quantity_ml}ml"
