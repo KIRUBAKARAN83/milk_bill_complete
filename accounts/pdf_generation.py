@@ -72,7 +72,7 @@ def generate_bill_pdf(
    if year and month:
     month_name = datetime(year, month, 1).strftime('%B %Y')
     period_text = f"Billing Period: {month_name}"
-else:
+   else:
     period_text = "Billing Period: All Records"
 
     elements.append(
