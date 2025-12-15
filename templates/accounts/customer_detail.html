@@ -42,6 +42,7 @@ body{background:#f4f6f9}
 <div class="card fade-card mb-3">
   <div class="card-header d-flex justify-content-between align-items-center">
     <strong>{{ month.month_name }}</strong>
+
     <div class="d-flex gap-2">
       <a href="{% url 'accounts:bill_pdf_month' customer.id month.year month.month %}"
          class="btn btn-outline-danger btn-sm">📥 PDF</a>
@@ -77,12 +78,14 @@ body{background:#f4f6f9}
           <a href="{% url 'accounts:edit_entry' entry.id %}"
              class="btn btn-sm btn-outline-warning action-btn">✏️</a>
 
-          <button class="btn btn-sm btn-outline-danger action-btn"
-                  onclick="deleteEntry(
-                    '{% url 'accounts:delete_entry' entry.id %}',
-                    '{% url 'accounts:restore_entry' entry.id %}',
-                    this
-                  )">🗑️</button>
+          <button
+            type="button"
+            class="btn btn-sm btn-outline-danger action-btn"
+            onclick="deleteEntry(
+              '{% url 'accounts:delete_entry' entry.id %}',
+              '{% url 'accounts:restore_entry' entry.id %}',
+              this
+            )">🗑️</button>
         </td>
       </tr>
     {% endfor %}
@@ -106,7 +109,7 @@ body{background:#f4f6f9}
      style="display:none;position:fixed;bottom:20px;right:20px;
             background:#111;color:#fff;padding:10px 14px;border-radius:6px;">
   Entry deleted
-  <button onclick="undoDelete()" class="btn btn-sm btn-light ms-2">Undo</button>
+  <button type="button" onclick="undoDelete()" class="btn btn-sm btn-light ms-2">Undo</button>
 </div>
 
 <script>
@@ -115,7 +118,7 @@ let lastRestoreUrl = null;
 
 function getCSRFToken(){
   return document.cookie.split(';')
-    .find(c=>c.trim().startsWith('csrftoken='))?.split('=')[1];
+    .find(c => c.trim().startsWith('csrftoken='))?.split('=')[1];
 }
 
 function deleteEntry(deleteUrl, restoreUrl, btn){
@@ -124,22 +127,30 @@ function deleteEntry(deleteUrl, restoreUrl, btn){
   fetch(deleteUrl,{
     method:"POST",
     headers:{
-      "X-CSRFToken":getCSRFToken(),
+      "X-CSRFToken": getCSRFToken(),
       "X-Requested-With":"XMLHttpRequest"
     }
-  }).then(()=> {
-      const row = btn.closest("tr");
-      lastDeleted = row;
-      lastRestoreUrl = restoreUrl;
+  })
+  .then(res => {
+    if(!res.ok) throw new Error("Delete failed");
+    return res.json();
+  })
+  .then(() => {
+    const row = btn.closest("tr");
+    lastDeleted = row;
+    lastRestoreUrl = restoreUrl;
 
-      const amt = parseFloat(row.querySelector(".amount").innerText.replace("₹",""));
-      const bal = document.getElementById("balanceAmount");
-      bal.innerText = (parseFloat(bal.innerText) - amt).toFixed(2);
+    const amt = parseFloat(row.querySelector(".amount").innerText.replace("₹",""));
+    const bal = document.getElementById("balanceAmount");
+    bal.innerText = (parseFloat(bal.innerText) - amt).toFixed(2);
 
-      row.style.display="none";
-      document.getElementById("undoToast").style.display="block";
-      setTimeout(()=>document.getElementById("undoToast").style.display="none",6000);
-  });
+    row.style.display="none";
+    document.getElementById("undoToast").style.display="block";
+    setTimeout(() => {
+      document.getElementById("undoToast").style.display="none";
+    }, 6000);
+  })
+  .catch(() => alert("Delete failed. Please refresh."));
 }
 
 function undoDelete(){
@@ -148,16 +159,18 @@ function undoDelete(){
   fetch(lastRestoreUrl,{
     method:"POST",
     headers:{
-      "X-CSRFToken":getCSRFToken(),
+      "X-CSRFToken": getCSRFToken(),
       "X-Requested-With":"XMLHttpRequest"
     }
-  }).then(()=>{
+  })
+  .then(res => {
+    if(!res.ok) throw new Error();
     const amt = parseFloat(lastDeleted.querySelector(".amount").innerText.replace("₹",""));
     const bal = document.getElementById("balanceAmount");
     bal.innerText = (parseFloat(bal.innerText) + amt).toFixed(2);
 
     lastDeleted.style.display="";
-    lastDeleted=null;
+    lastDeleted = null;
   });
 }
 
