@@ -17,22 +17,27 @@ from .pdf_generation import generate_bill_pdf
 from .whatsapp import send_whatsapp_pdf
 
 
-# ---------------- DASHBOARD ----------------
+# ─────────────────────────────────────
+# DASHBOARD
+# ─────────────────────────────────────
 
 @login_required(login_url='login')
 def home(request):
     total_customers = Customer.objects.count()
 
-    total_ml = MilkEntry.objects.filter(
-        is_deleted=False
-    ).aggregate(total=Sum('quantity_ml'))['total'] or 0
+    total_ml = (
+        MilkEntry.objects
+        .filter(is_deleted=False)
+        .aggregate(total=Sum('quantity_ml'))['total'] or 0
+    )
 
-    total_litres = round(Decimal(total_ml) / Decimal(1000), 2)
-    total_amount = round(total_litres * Decimal(PRICE_PER_LITRE), 2)
+    total_litres = Decimal(total_ml) / Decimal(1000)
+    total_amount = total_litres * Decimal(PRICE_PER_LITRE)
 
-    total_balance = Customer.objects.aggregate(
-        balance=Sum('balance_amount')
-    )['balance'] or Decimal(0)
+    total_balance = (
+        Customer.objects.aggregate(balance=Sum('balance_amount'))['balance']
+        or Decimal(0)
+    )
 
     last_entries = (
         MilkEntry.objects
@@ -43,25 +48,27 @@ def home(request):
 
     return render(request, 'accounts/home.html', {
         'total_customers': total_customers,
-        'total_litres': total_litres,
+        'total_litres': round(total_litres, 2),
         'total_balance': round(total_balance, 2),
-        'total_amount': total_amount,
+        'total_amount': round(total_amount, 2),
         'last_entries': last_entries,
     })
 
 
-# ---------------- CUSTOMER LIST ----------------
+# ─────────────────────────────────────
+# CUSTOMER LIST
+# ─────────────────────────────────────
 
 @login_required(login_url='login')
 def customer_list(request):
     customers = Customer.objects.all()
 
     for c in customers:
-        total_ml = MilkEntry.objects.filter(
-            customer=c,
-            is_deleted=False
-        ).aggregate(total=Sum('quantity_ml'))['total'] or 0
-
+        total_ml = (
+            MilkEntry.objects
+            .filter(customer=c, is_deleted=False)
+            .aggregate(total=Sum('quantity_ml'))['total'] or 0
+        )
         c.total_litres = round(Decimal(total_ml) / Decimal(1000), 2)
 
     return render(request, 'accounts/customer_list.html', {
@@ -69,22 +76,24 @@ def customer_list(request):
     })
 
 
-# ---------------- CUSTOMER DETAIL ----------------
+# ─────────────────────────────────────
+# CUSTOMER DETAIL
+# ─────────────────────────────────────
 
 @login_required(login_url='login')
 def customer_detail(request, customer_id):
     customer = get_object_or_404(Customer, id=customer_id)
 
-    entries = MilkEntry.objects.filter(
-        customer=customer,
-        is_deleted=False
-    ).order_by('-date')
+    entries = (
+        MilkEntry.objects
+        .filter(customer=customer, is_deleted=False)
+        .order_by('-date')
+    )
 
     months = {}
 
     for e in entries:
         key = (e.date.year, e.date.month)
-
         if key not in months:
             months[key] = {
                 'year': e.date.year,
@@ -92,7 +101,7 @@ def customer_detail(request, customer_id):
                 'month_name': e.date.strftime('%B %Y'),
                 'entries': [],
                 'total_ml': 0,
-                'total_amount': Decimal(0)
+                'total_amount': Decimal(0),
             }
 
         months[key]['entries'].append(e)
@@ -110,11 +119,13 @@ def customer_detail(request, customer_id):
             key=lambda x: (x['year'], x['month']),
             reverse=True
         ),
-        'total_entries': entries.count()
+        'total_entries': entries.count(),
     })
 
 
-# ---------------- ADD / EDIT ENTRY ----------------
+# ─────────────────────────────────────
+# ADD / EDIT ENTRY
+# ─────────────────────────────────────
 
 @login_required(login_url='login')
 @require_http_methods(["GET", "POST"])
@@ -126,7 +137,9 @@ def add_entry(request):
             name = form.cleaned_data.get('customer_name')
 
             if not customer and name:
-                customer, _ = Customer.objects.get_or_create(name=name.strip())
+                customer, _ = Customer.objects.get_or_create(
+                    name=name.strip()
+                )
 
             MilkEntry.objects.create(
                 customer=customer,
@@ -134,6 +147,7 @@ def add_entry(request):
                 quantity_ml=form.cleaned_data['quantity_ml']
             )
 
+            customer.recalculate_balance()
             return redirect('accounts:customer_list')
     else:
         form = MilkEntryForm()
@@ -150,6 +164,7 @@ def edit_entry(request, entry_id):
         form = MilkEntryForm(request.POST, instance=entry)
         if form.is_valid():
             form.save()
+            entry.customer.recalculate_balance()
             return redirect(
                 'accounts:customer_detail',
                 customer_id=entry.customer.id
@@ -160,7 +175,9 @@ def edit_entry(request, entry_id):
     return render(request, 'accounts/entry_form.html', {'form': form})
 
 
-# ---------------- DELETE ENTRY (SOFT) ----------------
+# ─────────────────────────────────────
+# SOFT DELETE / RESTORE ENTRY
+# ─────────────────────────────────────
 
 @login_required(login_url='login')
 @require_http_methods(["POST"])
@@ -168,6 +185,7 @@ def delete_entry(request, entry_id):
     entry = get_object_or_404(MilkEntry, id=entry_id, is_deleted=False)
     entry.is_deleted = True
     entry.save()
+    entry.customer.recalculate_balance()
     return JsonResponse({'status': 'deleted'})
 
 
@@ -177,10 +195,13 @@ def restore_entry(request, entry_id):
     entry = get_object_or_404(MilkEntry, id=entry_id, is_deleted=True)
     entry.is_deleted = False
     entry.save()
+    entry.customer.recalculate_balance()
     return JsonResponse({'status': 'restored'})
 
 
-# ---------------- CUSTOMER EDIT / DELETE ----------------
+# ─────────────────────────────────────
+# CUSTOMER EDIT / DELETE
+# ─────────────────────────────────────
 
 @login_required(login_url='login')
 @require_http_methods(["GET", "POST"])
@@ -191,7 +212,10 @@ def edit_customer(request, customer_id):
         form = CustomerForm(request.POST, instance=customer)
         if form.is_valid():
             form.save()
-            return redirect('accounts:customer_detail', customer_id=customer.id)
+            return redirect(
+                'accounts:customer_detail',
+                customer_id=customer.id
+            )
     else:
         form = CustomerForm(instance=customer)
 
@@ -209,7 +233,9 @@ def delete_customer(request, customer_id):
     return redirect('accounts:customer_list')
 
 
-# ---------------- CHART DATA (FIXED) ----------------
+# ─────────────────────────────────────
+# CHART DATA (FIXES 500)
+# ─────────────────────────────────────
 
 @login_required(login_url='login')
 def chart_data(request, customer_id):
@@ -227,8 +253,9 @@ def chart_data(request, customer_id):
     })
 
 
-
-# ---------------- PDF ----------------
+# ─────────────────────────────────────
+# PDF BILL
+# ─────────────────────────────────────
 
 @login_required(login_url='login')
 def bill_pdf(request, customer_id, year=None, month=None):
@@ -240,7 +267,10 @@ def bill_pdf(request, customer_id, year=None, month=None):
     )
 
     if year and month:
-        entries = entries.filter(date__year=year, date__month=month)
+        entries = entries.filter(
+            date__year=year,
+            date__month=month
+        )
         filename = f"bill_{customer.id}_{year}_{month}.pdf"
     else:
         filename = f"bill_{customer.id}_all.pdf"
@@ -267,7 +297,55 @@ def bill_pdf(request, customer_id, year=None, month=None):
     return response
 
 
-# ---------------- MONTHLY SUMMARY ----------------
+# ─────────────────────────────────────
+# SEND BILL VIA WHATSAPP (REQUIRED BY URLS)
+# ─────────────────────────────────────
+
+@login_required(login_url='login')
+@require_http_methods(["POST"])
+def send_bill_whatsapp(request, customer_id, year, month):
+    customer = get_object_or_404(Customer, id=customer_id)
+
+    entries = MilkEntry.objects.filter(
+        customer=customer,
+        is_deleted=False,
+        date__year=year,
+        date__month=month
+    )
+
+    total_ml = entries.aggregate(total=Sum('quantity_ml'))['total'] or 0
+    total_litres = Decimal(total_ml) / Decimal(1000)
+    total_amount = total_litres * Decimal(PRICE_PER_LITRE)
+
+    pdf = generate_bill_pdf(
+        customer,
+        entries,
+        total_ml,
+        total_litres,
+        total_amount,
+        PRICE_PER_LITRE,
+        year,
+        month
+    )
+
+    path = f"bills/bill_{customer.id}_{year}_{month}.pdf"
+    saved = default_storage.save(path, ContentFile(pdf.getvalue()))
+    pdf_url = request.build_absolute_uri(settings.MEDIA_URL + saved)
+
+    month_name = datetime(year, month, 1).strftime('%B %Y')
+
+    send_whatsapp_pdf(
+        phone_number="whatsapp:+91XXXXXXXXXX",
+        pdf_url=pdf_url,
+        message=f"Hello {customer.name}, your milk bill for {month_name} is attached."
+    )
+
+    return JsonResponse({'status': 'sent'})
+
+
+# ─────────────────────────────────────
+# MONTHLY SUMMARY
+# ─────────────────────────────────────
 
 @login_required(login_url='login')
 def monthly_summary(request):
@@ -287,14 +365,13 @@ def monthly_summary(request):
     summary = {}
 
     for e in entries:
-        cid = e.customer.id
-        summary.setdefault(cid, {
+        summary.setdefault(e.customer.id, {
             'name': e.customer.name,
             'total_ml': 0,
             'amount': Decimal(0)
         })
-        summary[cid]['total_ml'] += e.quantity_ml
-        summary[cid]['amount'] += e.amount
+        summary[e.customer.id]['total_ml'] += e.quantity_ml
+        summary[e.customer.id]['amount'] += e.amount
 
     summary_list = [{
         'name': s['name'],
