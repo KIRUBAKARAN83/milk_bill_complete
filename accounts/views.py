@@ -196,7 +196,17 @@ def edit_customer(request, customer_id):
     )
 
 
-# ---------------- SOFT DELETE + RESTORE ----------------
+# ---------------- DELETE CUSTOMER (FIXED) ----------------
+
+@login_required(login_url='login')
+@require_http_methods(["POST"])
+def delete_customer(request, customer_id):
+    customer = get_object_or_404(Customer, id=customer_id)
+    customer.delete()
+    return redirect('accounts:customer_list')
+
+
+# ---------------- SOFT DELETE + RESTORE ENTRY ----------------
 
 @login_required(login_url='login')
 @require_http_methods(["POST"])
@@ -298,7 +308,7 @@ def send_bill_whatsapp(request, customer_id, year, month):
     month_name = datetime(year, month, 1).strftime('%B %Y')
 
     send_whatsapp_pdf(
-        phone_number="whatsapp:+91XXXXXXXXXX",  # replace later
+        phone_number="whatsapp:+91XXXXXXXXXX",
         pdf_url=pdf_url,
         message=f"Hello {customer.name}, your milk bill for {month_name} is attached."
     )
