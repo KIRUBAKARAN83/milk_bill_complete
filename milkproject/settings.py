@@ -10,9 +10,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-change-me-please')
 DEBUG = False
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = [
+    'milkbill.onrender.com',
+    'localhost',
+    '127.0.0.1',
+]
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SECURE_SSL_REDIRECT = True
 
 # ─────────────────────────────
 # APPLICATIONS
@@ -74,9 +79,8 @@ TEMPLATES = [
 # ─────────────────────────────
 DATABASES = {
     'default': dj_database_url.config(
-        default='sqlite:///' + str(BASE_DIR / 'db.sqlite3'),
-        conn_max_age=600,
-        ssl_require=True
+        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+        conn_max_age=600
     )
 }
 
@@ -99,7 +103,6 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-# Safe whitenoise storage (NO manifest crash)
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 
 MEDIA_URL = '/media/'
@@ -113,10 +116,10 @@ LOGIN_REDIRECT_URL = 'accounts:home'
 LOGOUT_REDIRECT_URL = 'login'
 
 # ─────────────────────────────
-# CSRF (REQUIRED FOR RENDER HTTPS)
+# CSRF (RENDER HTTPS FIX)
 # ─────────────────────────────
 CSRF_TRUSTED_ORIGINS = [
-    'https://milkbill.onrender.com',
+    'https://*.onrender.com',
 ]
 
 # ─────────────────────────────
