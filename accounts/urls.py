@@ -71,4 +71,7 @@ urlpatterns = [
 
     # Reports
     path('monthly-summary/', views.monthly_summary, name='monthly_summary'),
+    path('finance/', views.finance_list, name='finance_list'),
+    path('finance/add/', views.add_finance_entry, name='add_finance_entry'),
+
 ]
