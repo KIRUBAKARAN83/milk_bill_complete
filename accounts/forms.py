@@ -24,11 +24,13 @@ class CustomerForm(forms.ModelForm):
         }
 
     def clean_name(self):
-        name = self.cleaned_data['name'].strip()
+        name = self.cleaned_data.get('name', '').strip()
 
         if not name:
             raise forms.ValidationError("Customer name cannot be empty.")
 
+        # normalize spacing (prevents duplicates like "Ram  Kumar")
+        name = " ".join(name.split())
         return name
 
 
@@ -41,6 +43,7 @@ class MilkEntryForm(forms.ModelForm):
     Allows:
     - selecting existing customer
     - OR typing a new customer name
+    Customer creation happens in the VIEW (single source of truth).
     """
 
     customer_name = forms.CharField(
@@ -75,28 +78,34 @@ class MilkEntryForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # Optional because customer_name may be used instead
+        # customer optional because customer_name may be used
         self.fields['customer'].required = False
         self.fields['customer'].queryset = Customer.objects.all().order_by('name')
+
+    def clean_quantity_ml(self):
+        qty = self.cleaned_data.get('quantity_ml')
+
+        if qty is None:
+            raise forms.ValidationError("Quantity is required.")
+
+        if qty < 0:
+            raise forms.ValidationError("Quantity cannot be negative.")
+
+        return qty
 
     def clean(self):
         cleaned = super().clean()
 
         customer = cleaned.get('customer')
         customer_name = (cleaned.get('customer_name') or '').strip()
-        quantity = cleaned.get('quantity_ml')
 
-        # Must provide either existing customer or new name
+        # normalize customer_name spacing
+        customer_name = " ".join(customer_name.split())
+
         if not customer and not customer_name:
             raise forms.ValidationError(
                 "Select an existing customer or enter a new customer name."
             )
-
-        if quantity is None:
-            raise forms.ValidationError("Quantity is required.")
-
-        if quantity < 0:
-            raise forms.ValidationError("Quantity cannot be negative.")
 
         cleaned['customer_name'] = customer_name
         return cleaned
