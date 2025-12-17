@@ -13,8 +13,9 @@ class Customer(models.Model):
     balance_amount = models.DecimalField(
         max_digits=10,
         decimal_places=2,
-        default=0
+        default=Decimal('0.00')
     )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -30,15 +31,21 @@ class Customer(models.Model):
     def __str__(self):
         return self.name
 
+    # ✅ SINGLE SOURCE OF TRUTH
+    # Balance = sum of non-deleted milk entry amounts
     def recalculate_balance(self):
-        total_ml = (
+        total = (
             self.milk_entries
             .filter(is_deleted=False)
-            .aggregate(total=Sum('quantity_ml'))['total'] or 0
+            .aggregate(
+                total=Sum(
+                    models.F('quantity_ml') * Decimal(PRICE_PER_LITRE) / Decimal(1000)
+                )
+            )['total']
+            or Decimal('0.00')
         )
 
-        litres = Decimal(total_ml) / Decimal(1000)
-        self.balance_amount = litres * Decimal(PRICE_PER_LITRE)
+        self.balance_amount = total
         self.save(update_fields=['balance_amount'])
 
 
@@ -52,6 +59,7 @@ class MilkEntry(models.Model):
     date = models.DateField(default=timezone.now)
     quantity_ml = models.PositiveIntegerField(default=0)
 
+    # Soft delete (used everywhere)
     is_deleted = models.BooleanField(default=False, db_index=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -69,4 +77,4 @@ class MilkEntry(models.Model):
         return self.litres * Decimal(PRICE_PER_LITRE)
 
     def __str__(self):
-        return f"{self.customer.name} | {self.date} | {self.quantity_ml}ml"
+        return f"{self.customer.name} | {self.date} | {self.quantity_ml} ml"
