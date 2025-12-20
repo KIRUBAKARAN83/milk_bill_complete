@@ -356,16 +356,3 @@ def monthly_summary(request):
 
 
 # ─────────────────────────────
-# FINANCE (SAFE STUBS)
-# ─────────────────────────────
-@login_required(login_url='login')
-def finance_list(request):
-    return render(request, 'accounts/finance_list.html')
-
-
-@login_required(login_url='login')
-@require_http_methods(["GET", "POST"])
-def add_finance_entry(request):
-    if request.method == 'POST':
-        return redirect('accounts:finance_list')
-    return render(request, 'accounts/finance_form.html')
