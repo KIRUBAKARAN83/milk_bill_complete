@@ -18,7 +18,7 @@ from .whatsapp import send_whatsapp_pdf
 
 
 # ─────────────────────────────
-# DASHBOARD + SEARCH (FIXED)
+# DASHBOARD + SEARCH
 # ─────────────────────────────
 @login_required(login_url='login')
 def home(request):
@@ -37,20 +37,21 @@ def home(request):
         except ValueError:
             entries = entries.filter(customer__name__icontains=search_query)
 
-    total_ml = entries.aggregate(total=Sum('quantity_ml'))['total'] or 0
+    total_ml = entries.aggregate(total=Sum('quantity_ml')).get('total') or 0
     total_litres = Decimal(total_ml) / Decimal(1000)
     total_amount = total_litres * Decimal(PRICE_PER_LITRE)
 
-    # Global stats (NOT affected by search)
+    # Global stats (NOT filtered)
     total_customers = Customer.objects.count()
-    total_balance = Customer.objects.aggregate(
-        balance=Sum('balance_amount')
-    )['balance'] or Decimal(0)
+    total_balance = (
+        Customer.objects.aggregate(balance=Sum('balance_amount'))
+        .get('balance') or Decimal(0)
+    )
 
     last_entries = entries.order_by('-date')[:10]
 
     return render(request, 'accounts/home.html', {
-        'search_query': search_query,   # ✅ FIX
+        'search_query': search_query,
         'total_customers': total_customers,
         'total_litres': round(total_litres, 2),
         'total_amount': round(total_amount, 2),
@@ -60,21 +61,28 @@ def home(request):
 
 
 # ─────────────────────────────
-# CUSTOMER LIST
+# CUSTOMER LIST (FIXED)
 # ─────────────────────────────
 @login_required(login_url='login')
 def customer_list(request):
-    customers = Customer.objects.all()
+    customers = (
+        Customer.objects
+        .all()
+        .prefetch_related('milk_entries')  # 🔥 critical fix
+    )
 
     for c in customers:
         total_ml = (
-            MilkEntry.objects
-            .filter(customer=c, is_deleted=False)
-            .aggregate(total=Sum('quantity_ml'))['total'] or 0
+            c.milk_entries
+            .filter(is_deleted=False)
+            .aggregate(total=Sum('quantity_ml'))
+            .get('total') or 0
         )
         c.total_litres = round(Decimal(total_ml) / Decimal(1000), 2)
 
-    return render(request, 'accounts/customer_list.html', {'customers': customers})
+    return render(request, 'accounts/customer_list.html', {
+        'customers': customers
+    })
 
 
 # ─────────────────────────────
@@ -84,10 +92,11 @@ def customer_list(request):
 def customer_detail(request, customer_id):
     customer = get_object_or_404(Customer, id=customer_id)
 
-    entries = MilkEntry.objects.filter(
-        customer=customer,
-        is_deleted=False
-    ).order_by('-date')
+    entries = (
+        MilkEntry.objects
+        .filter(customer=customer, is_deleted=False)
+        .order_by('-date')
+    )
 
     months = {}
 
@@ -122,7 +131,7 @@ def customer_detail(request, customer_id):
 
 
 # ─────────────────────────────
-# ADD / EDIT ENTRY (SAFE)
+# ADD / EDIT ENTRY
 # ─────────────────────────────
 @login_required(login_url='login')
 @require_http_methods(["GET", "POST"])
@@ -134,11 +143,9 @@ def add_entry(request):
         name = form.cleaned_data.get('customer_name')
 
         if not customer and name:
-            customer, _ = Customer.objects.get_or_create(
-                name=name.strip()
-            )
+            customer, _ = Customer.objects.get_or_create(name=name.strip())
 
-        entry = MilkEntry.objects.create(
+        MilkEntry.objects.create(
             customer=customer,
             date=form.cleaned_data['date'],
             quantity_ml=form.cleaned_data['quantity_ml']
@@ -191,34 +198,13 @@ def restore_entry(request, entry_id):
 
 
 # ─────────────────────────────
-# CHART DATA
-# ─────────────────────────────
-@login_required(login_url='login')
-def chart_data(request, customer_id):
-    customer = get_object_or_404(Customer, id=customer_id)
-
-    entries = MilkEntry.objects.filter(
-        customer=customer,
-        is_deleted=False
-    ).order_by('date')[:30]
-
-    return JsonResponse({
-        'labels': [e.date.strftime('%Y-%m-%d') for e in entries],
-        'data': [float(e.litres) for e in entries],
-    })
-
-
-# ─────────────────────────────
 # PDF BILL
 # ─────────────────────────────
 @login_required(login_url='login')
 def bill_pdf(request, customer_id, year=None, month=None):
     customer = get_object_or_404(Customer, id=customer_id)
 
-    entries = MilkEntry.objects.filter(
-        customer=customer,
-        is_deleted=False
-    )
+    entries = MilkEntry.objects.filter(customer=customer, is_deleted=False)
 
     if year and month:
         entries = entries.filter(date__year=year, date__month=month)
@@ -226,7 +212,7 @@ def bill_pdf(request, customer_id, year=None, month=None):
     else:
         filename = f"bill_{customer.id}_all.pdf"
 
-    total_ml = entries.aggregate(total=Sum('quantity_ml'))['total'] or 0
+    total_ml = entries.aggregate(total=Sum('quantity_ml')).get('total') or 0
     total_litres = Decimal(total_ml) / Decimal(1000)
     total_amount = total_litres * Decimal(PRICE_PER_LITRE)
 
@@ -247,7 +233,7 @@ def bill_pdf(request, customer_id, year=None, month=None):
 
 
 # ─────────────────────────────
-# SEND BILL VIA WHATSAPP
+# WHATSAPP BILL
 # ─────────────────────────────
 @login_required(login_url='login')
 @require_http_methods(["POST"])
@@ -264,7 +250,7 @@ def send_bill_whatsapp(request, customer_id, year, month):
     if not entries.exists():
         return JsonResponse({'error': 'No entries'}, status=400)
 
-    total_ml = entries.aggregate(total=Sum('quantity_ml'))['total'] or 0
+    total_ml = entries.aggregate(total=Sum('quantity_ml')).get('total') or 0
     total_litres = Decimal(total_ml) / Decimal(1000)
     total_amount = total_litres * Decimal(PRICE_PER_LITRE)
 
@@ -283,12 +269,10 @@ def send_bill_whatsapp(request, customer_id, year, month):
     saved = default_storage.save(path, ContentFile(pdf.getvalue()))
     pdf_url = request.build_absolute_uri(settings.MEDIA_URL + saved)
 
-    month_name = datetime(year, month, 1).strftime('%B %Y')
-
     send_whatsapp_pdf(
         phone_number="whatsapp:+91XXXXXXXXXX",
         pdf_url=pdf_url,
-        message=f"Hello {customer.name}, your milk bill for {month_name} is attached."
+        message=f"Hello {customer.name}, your milk bill is attached."
     )
 
     return JsonResponse({'status': 'sent'})
