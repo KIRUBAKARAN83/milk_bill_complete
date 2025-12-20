@@ -303,7 +303,7 @@ def send_bill_whatsapp(request, customer_id, year, month):
     pdf_url = request.build_absolute_uri(settings.MEDIA_URL + saved)
 
     send_whatsapp_pdf(
-        phone_number="whatsapp:+91XXXXXXXXXX",
+        phone_number="whatsapp:+9677815162",
         pdf_url=pdf_url,
         message=f"Hello {customer.name}, your milk bill is attached."
     )
