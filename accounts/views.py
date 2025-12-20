@@ -175,17 +175,24 @@ def delete_entry(request, entry_id):
     return redirect('accounts:customer_detail', customer_id=customer_id)
 
 @login_required(login_url='login')
-@require_http_methods(["GET", "POST"])
 def edit_customer(request, customer_id):
     customer = get_object_or_404(Customer, id=customer_id)
+
     if request.method == 'POST':
         form = CustomerForm(request.POST, instance=customer)
         if form.is_valid():
-            form.save()
-            return redirect('accounts:customer_detail', customer_id=customer.id)
+            form.save()  # ✅ balance is saved here
+            return redirect(
+                'accounts:customer_detail',
+                customer_id=customer.id
+            )
     else:
         form = CustomerForm(instance=customer)
-    return render(request, 'accounts/customer_form.html', {'form': form, 'customer': customer, 'title': 'Edit Customer'})
+
+    return render(request, 'accounts/customer_form.html', {
+        'form': form,
+        'customer': customer
+    })
 
 @login_required(login_url='login')
 @require_http_methods(["POST"])
