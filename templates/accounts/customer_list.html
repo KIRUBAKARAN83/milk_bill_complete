@@ -5,65 +5,17 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Customers</title>
-
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-
-    <style>
-        body { background: #f4f6f9; }
-
-        .page-wrap { animation: fadeUp .35s ease-out both; }
-        @keyframes fadeUp {
-            from { opacity: 0; transform: translateY(10px); }
-            to   { opacity: 1; transform: none; }
-        }
-
-        .page-header {
-            background: #ffffff;
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 8px 24px rgba(0,0,0,.08);
-            margin-bottom: 20px;
-        }
-
-        .table-card {
-            background: #ffffff;
-            border-radius: 12px;
-            box-shadow: 0 8px 24px rgba(0,0,0,.08);
-            overflow: hidden;
-        }
-
-        .table tbody tr:hover { background-color: #f1f5f9; }
-
-        .btn-sm:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(0,0,0,.15);
-        }
-
-        .back-btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 6px 18px rgba(0,0,0,.15);
-        }
-    </style>
 </head>
-
 <body>
-<div class="container mt-5 page-wrap">
-
-    <!-- Header -->
-    <div class="page-header d-flex justify-content-between align-items-center flex-wrap">
-        <div>
-            <h4 class="mb-1">👥 Customers</h4>
-            <small class="text-muted">Customer accounts and balances</small>
+    <div class="container mt-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Customers</h2>
+            <a href="{% url 'accounts:add_entry' %}" class="btn btn-primary">➕ Add Entry</a>
         </div>
-        <a href="{% url 'accounts:add_entry' %}" class="btn btn-primary btn-sm">
-            ➕ Add Entry
-        </a>
-    </div>
 
-    <!-- Table -->
-    <div class="table-card">
         <div class="table-responsive">
-            <table class="table table-hover mb-0">
+            <table class="table table-hover table-bordered">
                 <thead class="table-dark">
                     <tr>
                         <th>Name</th>
@@ -80,44 +32,28 @@
                         <td class="text-end {% if customer.balance_amount > 0 %}text-success{% elif customer.balance_amount < 0 %}text-danger{% endif %}">
                             ₹ {{ customer.balance_amount|floatformat:2 }}
                         </td>
-                        <td class="d-flex gap-1 flex-wrap">
-                            <a href="{% url 'accounts:customer_detail' customer.id %}" class="btn btn-sm btn-info">
-                                📋 View
-                            </a>
-                            <a href="{% url 'accounts:edit_customer' customer.id %}" class="btn btn-sm btn-warning">
-                                ✏️ Edit
-                            </a>
-                            <a href="{% url 'accounts:bill_pdf' customer.id %}" class="btn btn-sm btn-danger">
-                                📄 PDF
-                            </a>
-                            <form method="post"
-                                  action="{% url 'accounts:delete_customer' customer.id %}"
-                                  style="display:inline;"
-                                  onsubmit="return confirm('Delete {{ customer.name }}? All records will be removed.');">
+                        <td>
+                            <a href="{% url 'accounts:customer_detail' customer.id %}" class="btn btn-sm btn-info">📋 View</a>
+                            <a href="{% url 'accounts:edit_customer' customer.id %}" class="btn btn-sm btn-warning">✏️ Edit</a>
+                            <a href="{% url 'accounts:bill_pdf' customer.id %}" class="btn btn-sm btn-danger">📄 PDF</a>
+                            <form method="post" action="{% url 'accounts:delete_customer' customer.id %}" style="display:inline;" onsubmit="return confirm('Delete {{ customer.name }}? All records will be removed.');">
                                 {% csrf_token %}
-                                <button type="submit" class="btn btn-sm btn-danger">
-                                    🗑️ Delete
-                                </button>
+                                <button type="submit" class="btn btn-sm btn-danger">🗑️ Delete</button>
                             </form>
                         </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="4" class="text-center text-muted py-4">
-                            No customers found
-                        </td>
+                        <td colspan="4" class="text-center text-muted">No customers found</td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
+
+        <a href="{% url 'accounts:home' %}" class="btn btn-secondary mt-3">← Back to Dashboard</a>
     </div>
 
-    <!-- Back -->
-    <a href="{% url 'accounts:home' %}" class="btn btn-secondary mt-4 back-btn">
-        ← Back to Dashboard
-    </a>
-
-</div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
