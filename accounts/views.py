@@ -22,41 +22,60 @@ from .whatsapp import send_whatsapp_pdf
 # ─────────────────────────────
 @login_required(login_url='login')
 def home(request):
-    search_query = request.GET.get('q', '').strip()
+    query = request.GET.get('q', '').strip()
+    error = None
 
-    entries = (
+    # 🔍 CUSTOMER SEARCH LOGIC (ONLY)
+    if query:
+        customers = Customer.objects.filter(name__icontains=query)
+
+        if customers.count() == 1:
+            # ✅ EXACTLY ONE MATCH → GO TO DETAIL PAGE
+            return redirect(
+                'accounts:customer_detail',
+                customer_id=customers.first().id
+            )
+
+        elif customers.count() > 1:
+            # ⚠️ MULTIPLE MATCHES → GO TO CUSTOMER LIST FILTERED
+            return redirect(f"/customers/?q={query}")
+
+        else:
+            error = "No customer found"
+
+    # 📊 DASHBOARD STATS (UNCHANGED)
+    total_customers = Customer.objects.count()
+
+    total_ml = (
         MilkEntry.objects
         .filter(is_deleted=False)
-        .select_related('customer')
+        .aggregate(total=Sum('quantity_ml'))
+        .get('total') or 0
     )
 
-    if search_query:
-        try:
-            parsed_date = datetime.strptime(search_query, '%Y-%m-%d').date()
-            entries = entries.filter(date=parsed_date)
-        except ValueError:
-            entries = entries.filter(customer__name__icontains=search_query)
-
-    total_ml = entries.aggregate(total=Sum('quantity_ml'))['total'] or 0
     total_litres = Decimal(total_ml) / Decimal(1000)
     total_amount = total_litres * Decimal(PRICE_PER_LITRE)
 
-    total_customers = Customer.objects.count()
-    total_balance = Customer.objects.aggregate(
-        balance=Sum('balance_amount')
-    )['balance'] or Decimal(0)
+    total_balance = (
+        Customer.objects.aggregate(balance=Sum('balance_amount'))
+        .get('balance') or Decimal(0)
+    )
 
-    last_entries = entries.order_by('-date')[:10]
+    last_entries = (
+        MilkEntry.objects
+        .filter(is_deleted=False)
+        .select_related('customer')
+        .order_by('-date')[:10]
+    )
 
     return render(request, 'accounts/home.html', {
-        'search_query': search_query,
+        'error': error,
         'total_customers': total_customers,
         'total_litres': round(total_litres, 2),
         'total_amount': round(total_amount, 2),
         'total_balance': round(total_balance, 2),
         'last_entries': last_entries,
     })
-
 
 # ─────────────────────────────
 # CUSTOMER LIST
