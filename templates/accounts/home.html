@@ -48,7 +48,6 @@
       color: #bae6fd;
     }
 
-    /* Sidebar Nav */
     .sidebar-nav a {
       display: flex;
       align-items: center;
@@ -58,32 +57,16 @@
       text-decoration: none;
       font-size: 14px;
       border-left: 3px solid transparent;
-      transition:
-        background 0.25s ease,
-        color 0.25s ease,
-        transform 0.15s ease,
-        box-shadow 0.25s ease,
-        border-left-color 0.25s ease;
+      transition: background .25s ease, transform .15s ease, border-color .25s ease;
     }
 
-    .sidebar-nav a:hover {
-      background: rgba(10, 37, 64, 0.25);
+    .sidebar-nav a:hover,
+    .sidebar-nav a.active {
+      background: rgba(10, 37, 64, 0.35);
       border-left-color: #1d4ed8;
       transform: translateX(4px);
     }
 
-    .sidebar-nav a:active {
-      transform: translateX(2px) scale(0.97);
-      background: rgba(10, 37, 64, 0.35);
-    }
-
-    .sidebar-nav a.active {
-      background: rgba(10, 37, 64, 0.35);
-      border-left-color: #1d4ed8;
-      box-shadow: inset 0 0 0 1px rgba(29, 78, 216, 0.45);
-    }
-
-    /* Logout */
     .sidebar-footer {
       padding: 18px;
       border-top: 1px solid rgba(255,255,255,0.15);
@@ -92,7 +75,6 @@
 
     .sidebar-footer a {
       display: flex;
-      align-items: center;
       justify-content: center;
       gap: 10px;
       padding: 10px;
@@ -103,33 +85,18 @@
       font-size: 14px;
     }
 
-    /* Main Content */
+    /* Main */
     .main-content {
       margin-left: 260px;
       padding: 32px;
+      animation: fadeIn .35s ease forwards;
     }
 
-    /* Page transition */
-    .page-wrapper {
-      opacity: 0;
-      transform: translateY(12px);
-      animation: pageFadeIn 0.35s ease forwards;
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
-    @keyframes pageFadeIn {
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    .page-exit {
-      opacity: 0;
-      transform: translateY(-10px);
-      transition: opacity 0.25s ease, transform 0.25s ease;
-    }
-
-    /* Stats */
     .stats-cards {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -137,40 +104,12 @@
       margin-bottom: 34px;
     }
 
-    /* ✅ STAT CARD – FULLY MERGED */
     .stat-card {
-      background: #ffffff;
+      background: #fff;
       border-radius: 14px;
       padding: 22px;
       border: 1px solid #e2e8f0;
       box-shadow: 0 10px 20px rgba(0,0,0,0.04);
-      position: relative;
-      overflow: hidden;
-      transition:
-        transform 0.25s ease,
-        box-shadow 0.25s ease,
-        border-color 0.25s ease;
-    }
-
-    .stat-card::after {
-      content: "";
-      position: absolute;
-      inset: auto 0 0 0;
-      height: 4px;
-      background: linear-gradient(90deg, #0a2540, #1d4ed8);
-      transform: scaleX(0.6);
-      transform-origin: left;
-      transition: transform 0.3s ease;
-    }
-
-    .stat-card:hover {
-      transform: translateY(-6px);
-      box-shadow: 0 18px 36px rgba(10, 37, 64, 0.18);
-      border-color: rgba(29, 78, 216, 0.4);
-    }
-
-    .stat-card:hover::after {
-      transform: scaleX(1);
     }
 
     .stat-card h6 {
@@ -187,7 +126,6 @@
       margin: 0;
     }
 
-    /* Table */
     .card {
       border-radius: 14px;
       box-shadow: 0 10px 22px rgba(0,0,0,0.05);
@@ -210,85 +148,100 @@
     }
 
     @media(max-width:768px) {
-      .sidebar {
-        position: relative;
-        width: 100%;
-      }
-      .main-content {
-        margin-left: 0;
-      }
+      .sidebar { position: relative; width: 100%; }
+      .main-content { margin-left: 0; }
     }
   </style>
 </head>
 
 <body>
 
-  <!-- Sidebar -->
-  <aside class="sidebar">
-    <div class="sidebar-header">
-      <h4>🥛MILK ACCOUNTS</h4>
-      <small>{{ request.user.username }}</small>
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <h4>🥛 MILK ACCOUNTS</h4>
+    <small>{{ request.user.username }}</small>
+  </div>
+
+  <nav class="sidebar-nav">
+    <a href="{% url 'accounts:home' %}" class="{% if request.resolver_match.url_name == 'home' %}active{% endif %}">
+      <i class="bi bi-speedometer2"></i> Dashboard
+    </a>
+    <a href="{% url 'accounts:customer_list' %}" class="{% if request.resolver_match.url_name == 'customer_list' %}active{% endif %}">
+      <i class="bi bi-people"></i> Customers
+    </a>
+    <a href="{% url 'accounts:add_entry' %}">
+      <i class="bi bi-plus-circle"></i> Add Entry
+    </a>
+    <a href="{% url 'accounts:monthly_summary' %}">
+      <i class="bi bi-calendar-month"></i> Monthly Summary
+    </a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <a href="{% url 'logout' %}">
+      <i class="bi bi-box-arrow-right"></i> Logout
+    </a>
+  </div>
+</aside>
+
+<!-- Main Content -->
+<main class="main-content">
+  <h2 class="mb-4">📊 Dashboard Overview</h2>
+
+  <div class="stats-cards">
+    <div class="stat-card">
+      <h6>Total Customers</h6>
+      <h3>{{ total_customers }}</h3>
     </div>
-
-    <nav class="sidebar-nav">
-      <a href="{% url 'accounts:home' %}" class="{% if request.path == '/' %}active{% endif %}">
-        <i class="bi bi-speedometer2"></i> Dashboard
-      </a>
-      <a href="{% url 'accounts:customer_list' %}" class="{% if 'customer' in request.path %}active{% endif %}">
-        <i class="bi bi-people"></i> Customers
-      </a>
-      <a href="{% url 'accounts:add_entry' %}" class="{% if 'add' in request.path %}active{% endif %}">
-        <i class="bi bi-plus-circle"></i> Add Entry
-      </a>
-      <a href="{% url 'accounts:monthly_summary' %}" class="{% if 'monthly' in request.path %}active{% endif %}">
-        <i class="bi bi-calendar-month"></i> Monthly Summary
-      </a>
-    </nav>
-
-    <div class="sidebar-footer">
-      <a href="{% url 'logout' %}">
-        <i class="bi bi-box-arrow-right"></i> Logout
-      </a>
+    <div class="stat-card">
+      <h6>Total Milk (Litres)</h6>
+      <h3>{{ total_litres }}</h3>
     </div>
-  </aside>
-
-  <!-- Main -->
-  <main class="main-content page-wrapper">
-    <h2 class="page-title"> 📊Dashboard Overview</h2>
-
-    <div class="stats-cards">
-      <div class="stat-card"><h6>Total Customers</h6><h3>{{ total_customers }}</h3></div>
-      <div class="stat-card"><h6>Total Milk (Litres)</h6><h3>{{ total_litres }}</h3></div>
-      <div class="stat-card"><h6>Total Balance (₹)</h6><h3>₹ {{ total_balance }}</h3></div>
-      <div class="stat-card"><h6>Total Amount (₹)</h6><h3>₹ {{ total_amount|floatformat:2 }}</h3></div>
+    <div class="stat-card">
+      <h6>Total Balance (₹)</h6>
+      <h3>₹ {{ total_balance }}</h3>
     </div>
-
-    <div class="card">
-      <div class="card-header">Recent Milk Entries</div>
-      <div class="card-body p-0">
-        <table class="table mb-0 align-middle">
-          <thead>
-            <tr>
-              <th>Date</th><th>Customer</th><th>Qty</th><th>Litres</th><th>Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for entry in last_entries %}
-            <tr>
-              <td>{{ entry.date|date:"d-m-Y" }}</td>
-              <td>{{ entry.customer.name }}</td>
-              <td>{{ entry.quantity_ml }}</td>
-              <td>{{ entry.litres|floatformat:2 }}</td>
-              <td>₹ {{ entry.amount|floatformat:2 }}</td>
-            </tr>
-            {% empty %}
-            <tr><td colspan="5" class="text-center text-muted py-4">No entries found</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
+    <div class="stat-card">
+      <h6>Total Amount (₹)</h6>
+      <h3>₹ {{ total_amount|floatformat:2 }}</h3>
     </div>
-  </main>
+  </div>
+
+  <div class="card">
+    <div class="card-header">Recent Milk Entries</div>
+    <div class="card-body p-0">
+      <table class="table mb-0 align-middle">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Customer</th>
+            <th>Qty (ml)</th>
+            <th>Litres</th>
+            <th>Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for entry in last_entries %}
+          <tr>
+            <td>{{ entry.date|date:"d-m-Y" }}</td>
+            <td>{{ entry.customer.name }}</td>
+            <td>{{ entry.quantity_ml }}</td>
+            <td>{{ entry.litres|floatformat:2 }}</td>
+            <td>₹ {{ entry.amount|floatformat:2 }}</td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="5" class="text-center text-muted py-4">
+              No entries found
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
 
 </body>
 </html>
