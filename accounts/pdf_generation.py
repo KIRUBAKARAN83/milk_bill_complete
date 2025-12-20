@@ -94,7 +94,7 @@ def generate_bill_pdf(
         [
             ["Customer Name", customer.name or "N/A"],
             ["Previous Balance (Unpaid)", f"₹ {previous_balance:.2f}"],
-            ['Total Litres:', f"{float(total_litres)} L"]
+            ['Total Litres:', f"{float(total_litres)} L"],
             ["Current Month Amount", f"₹ {current_month_amount:.2f}"],
             ["Total Payable", f"₹ {total_payable:.2f}"],
         ],
