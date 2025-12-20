@@ -68,11 +68,23 @@ def generate_bill_pdf(
     # ---------------- TITLE ----------------
     elements.append(Paragraph("Milk Billing Invoice", title_style))
 
-    if year and month:
-        month_name = datetime(year, month, 1).strftime('%B %Y')
-        period_text = f"Billing Period: {month_name}"
+  # ---------------- BILLING PERIOD ----------------
+if entries:
+    start_date = min(e.date for e in entries)
+    end_date = max(e.date for e in entries)
+
+    if start_date.month == end_date.month and start_date.year == end_date.year:
+        # Same month → show month name
+        period_text = f"Billing Period: {start_date.strftime('%B %Y')}"
     else:
-        period_text = "Billing Period: All Records"
+        # Different range → show full date range
+        period_text = (
+            f"Billing Period: "
+            f"{start_date.strftime('%d-%m-%Y')} to {end_date.strftime('%d-%m-%Y')}"
+        )
+else:
+    period_text = "Billing Period: No entries"
+
 
     elements.append(
         Paragraph(
