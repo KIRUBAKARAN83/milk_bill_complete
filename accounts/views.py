@@ -24,32 +24,63 @@ from .whatsapp import send_whatsapp_pdf
 
 @login_required(login_url='login')
 def home(request):
-    try:
-        total_customers = Customer.objects.count()
-        total_ml = MilkEntry.objects.aggregate(total=Sum('quantity_ml'))['total'] or 0
-        total_litres = round(Decimal(total_ml) / Decimal(1000), 2) if total_ml else Decimal(0)
-        # total amount across all customers / entries
-        total_amount = round((Decimal(total_ml) / Decimal(1000)) * Decimal(PRICE_PER_LITRE), 2) if total_ml else Decimal(0)
-        total_balance = Customer.objects.aggregate(balance=Sum('balance_amount'))['balance'] or Decimal(0)
-        last_entries = MilkEntry.objects.select_related('customer').order_by('-date')[:10]
-        context = {
-            'total_customers': total_customers,
-            'total_litres': total_litres,
-            'total_balance': round(total_balance, 2),
-            'total_amount': total_amount,
-            'last_entries': last_entries,
-        }
-        return render(request, 'accounts/home.html', context)
-    except Exception as e:
-        return render(request, 'accounts/home.html', {
-            'total_customers': 0,
-            'total_litres': 0,
-            'total_balance': 0,
-            'total_amount': 0,
-            'last_entries': [],
-            'error': str(e)
-        })
-# ...existing code...
+    query = request.GET.get('q', '').strip()
+    error = None
+
+    # 🔍 CUSTOMER SEARCH
+    if query:
+        customers = Customer.objects.filter(name__icontains=query)
+        count = customers.count()
+
+        if count == 1:
+            # → Go directly to customer detail
+            return redirect(
+                'accounts:customer_detail',
+                customer_id=customers.first().id
+            )
+
+        elif count > 1:
+            # → Go to customer list with filter
+            return redirect(f"{reverse('accounts:customer_list')}?q={query}")
+
+        else:
+            error = "No customer found"
+
+    # 📊 DASHBOARD DATA (UNCHANGED)
+    total_customers = Customer.objects.count()
+
+    total_ml = (
+        MilkEntry.objects
+        .aggregate(total=Sum('quantity_ml'))
+        .get('total') or 0
+    )
+
+    total_litres = round(Decimal(total_ml) / Decimal(1000), 2) if total_ml else Decimal(0)
+    total_amount = round(
+        (Decimal(total_ml) / Decimal(1000)) * Decimal(PRICE_PER_LITRE), 2
+    ) if total_ml else Decimal(0)
+
+    total_balance = (
+        Customer.objects
+        .aggregate(balance=Sum('balance_amount'))
+        .get('balance') or Decimal(0)
+    )
+
+    last_entries = (
+        MilkEntry.objects
+        .select_related('customer')
+        .order_by('-date')[:10]
+    )
+
+    return render(request, 'accounts/home.html', {
+        'error': error,
+        'total_customers': total_customers,
+        'total_litres': total_litres,
+        'total_balance': round(total_balance, 2),
+        'total_amount': total_amount,
+        'last_entries': last_entries,
+    })
+
 
 @login_required(login_url='login')
 def customer_list(request):
