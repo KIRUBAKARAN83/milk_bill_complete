@@ -47,15 +47,6 @@ body{background:#f4f6f9}
       <a href="{% url 'accounts:bill_pdf_month' customer.id month.year month.month %}"
          class="btn btn-outline-danger btn-sm">📥 PDF</a>
 
-      <form method="post"
-        {% csrf_token %}
-        <button type="submit" href="https://web.whatsapp.com/" class="btn btn-success btn-sm">
-          💬 WhatsApp
-        </button>
-      </form>
-    </div>
-  </div>
-
   <table class="table table-sm mb-0">
     <thead>
       <tr>
