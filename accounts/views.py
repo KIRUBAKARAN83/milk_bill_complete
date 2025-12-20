@@ -1,7 +1,8 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse, HttpResponse, HttpResponseRedirect
 from django.views.decorators.http import require_http_methods
 from django.db.models import Sum
+from django.urls import reverse
 from django.utils import timezone
 from datetime import timedelta, datetime
 from decimal import Decimal
@@ -17,6 +18,7 @@ from .pdf_generation import generate_bill_pdf
 from .whatsapp import send_whatsapp_pdf
 
 
+
 # ─────────────────────────────
 # DASHBOARD + SEARCH
 # ─────────────────────────────
@@ -25,25 +27,24 @@ def home(request):
     query = request.GET.get('q', '').strip()
     error = None
 
-    # 🔍 CUSTOMER SEARCH LOGIC (ONLY)
     if query:
-        customers = Customer.objects.filter(name__icontains=query)
+        qs = Customer.objects.filter(name__icontains=query)
+        count = qs.count()
 
-        if customers.count() == 1:
-            # ✅ EXACTLY ONE MATCH → GO TO DETAIL PAGE
+        if count == 1:
             return redirect(
                 'accounts:customer_detail',
-                customer_id=customers.first().id
+                customer_id=qs.first().id
             )
 
-        elif customers.count() > 1:
-            # ⚠️ MULTIPLE MATCHES → GO TO CUSTOMER LIST FILTERED
-            return redirect(f"/customers/?q={query}")
+        elif count > 1:
+            return HttpResponseRedirect(
+                f"{reverse('accounts:customer_list')}?q={query}"
+            )
 
         else:
             error = "No customer found"
 
-    # 📊 DASHBOARD STATS (UNCHANGED)
     total_customers = Customer.objects.count()
 
     total_ml = (
@@ -53,12 +54,13 @@ def home(request):
         .get('total') or 0
     )
 
-    total_litres = Decimal(total_ml) / Decimal(1000)
+    total_litres = Decimal(total_ml) / Decimal('1000')
     total_amount = total_litres * Decimal(PRICE_PER_LITRE)
 
     total_balance = (
-        Customer.objects.aggregate(balance=Sum('balance_amount'))
-        .get('balance') or Decimal(0)
+        Customer.objects
+        .aggregate(balance=Sum('balance_amount'))
+        .get('balance') or Decimal('0')
     )
 
     last_entries = (
@@ -83,21 +85,19 @@ def home(request):
 @login_required(login_url='login')
 def customer_list(request):
     query = request.GET.get('q', '').strip()
-
     customers = Customer.objects.all()
 
     if query:
         customers = customers.filter(name__icontains=query)
 
-    # Attach computed field safely
     for c in customers:
         total_ml = (
-            MilkEntry.objects
-            .filter(customer=c, is_deleted=False)
+            c.milk_entries
+            .filter(is_deleted=False)
             .aggregate(total=Sum('quantity_ml'))
             .get('total') or 0
         )
-        c.total_litres = round(Decimal(total_ml) / Decimal(1000), 2)
+        c.total_litres = round(Decimal(total_ml) / Decimal('1000'), 2)
 
     return render(request, 'accounts/customer_list.html', {
         'customers': customers,
@@ -126,7 +126,7 @@ def customer_detail(request, customer_id):
             'month_name': e.date.strftime('%B %Y'),
             'entries': [],
             'total_ml': 0,
-            'total_amount': Decimal(0),
+            'total_amount': Decimal('0'),
         })
 
         months[key]['entries'].append(e)
@@ -134,7 +134,7 @@ def customer_detail(request, customer_id):
         months[key]['total_amount'] += e.amount
 
     for m in months.values():
-        m['total_litres'] = round(Decimal(m['total_ml']) / Decimal(1000), 2)
+        m['total_litres'] = round(Decimal(m['total_ml']) / Decimal('1000'), 2)
         m['total_amount'] = round(m['total_amount'], 2)
 
     return render(request, 'accounts/customer_detail.html', {
@@ -146,7 +146,6 @@ def customer_detail(request, customer_id):
         ),
         'total_entries': entries.count(),
     })
-
 
 # ─────────────────────────────
 # ADD / EDIT ENTRY
@@ -228,6 +227,7 @@ def chart_data(request, customer_id):
         'labels': [e.date.strftime('%Y-%m-%d') for e in entries],
         'data': [float(e.litres) for e in entries],
     })
+
 
 
 # ─────────────────────────────
