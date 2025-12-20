@@ -82,8 +82,14 @@ def home(request):
 # ─────────────────────────────
 @login_required(login_url='login')
 def customer_list(request):
+    query = request.GET.get('q', '').strip()
+
     customers = Customer.objects.all()
 
+    if query:
+        customers = customers.filter(name__icontains=query)
+
+    # Attach computed field safely
     for c in customers:
         total_ml = (
             MilkEntry.objects
@@ -94,25 +100,9 @@ def customer_list(request):
         c.total_litres = round(Decimal(total_ml) / Decimal(1000), 2)
 
     return render(request, 'accounts/customer_list.html', {
-        'customers': customers
-    })
-
-
-    # Calculate total litres safely
-    for c in customers:
-        total_ml = (
-            c.milk_entries
-            .filter(is_deleted=False)
-            .aggregate(total=Sum('quantity_ml'))
-            .get('total') or 0
-        )
-        c.total_litres = round(Decimal(total_ml) / Decimal(1000), 2)
-
-    return render(request, 'accounts/customer_list.html', {
         'customers': customers,
         'query': query,
     })
-
 
 # ─────────────────────────────
 # CUSTOMER DETAIL
