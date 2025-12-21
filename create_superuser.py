@@ -8,8 +8,8 @@ from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
-USERNAME = "kiruba_karan"
-PASSWORD = "kiruba"
+USERNAME = "kiruba_karan_123"
+PASSWORD = "kiruba@123"
 
 user, created = User.objects.get_or_create(username=USERNAME)
 
