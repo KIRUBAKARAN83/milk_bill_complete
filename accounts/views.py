@@ -24,41 +24,42 @@ from .pdf_generation import generate_bill_pdf
 
 @login_required(login_url='login')
 def home(request):
-    try:
-        total_customers = Customer.objects.count()
-        total_ml = MilkEntry.objects.aggregate(total=Sum('quantity_ml'))['total'] or 0
-        total_litres = round(Decimal(total_ml) / Decimal(1000), 2) if total_ml else Decimal(0)
-        # total amount across all customers / entries
-        total_amount = round((Decimal(total_ml) / Decimal(1000)) * Decimal(PRICE_PER_LITRE), 2) if total_ml else Decimal(0)
-        total_balance = Customer.objects.aggregate(balance=Sum('balance_amount'))['balance'] or Decimal(0)
-        last_entries = MilkEntry.objects.select_related('customer').order_by('-date')[:10]
-        context = {
-            'total_customers': total_customers,
-            'total_litres': total_litres,
-            'total_balance': round(total_balance, 2),
-            'total_amount': total_amount,
-            'last_entries': last_entries,
-        }
-        return render(request, 'accounts/home.html', context)
-    except Exception as e:
-        return render(request, 'accounts/home.html', {
-            'total_customers': 0,
-            'total_litres': 0,
-            'total_balance': 0,
-            'total_amount': 0,
-            'last_entries': [],
-            'error': str(e)
-        })
+    total_customers = Customer.objects.count()
+    total_ml = MilkEntry.objects.aggregate(total=Sum('quantity_ml'))['total'] or 0
+
+    total_litres = round(Decimal(total_ml) / Decimal(1000), 2)
+    total_amount = round(total_litres * PRICE_PER_LITRE, 2)
+
+    total_balance = Customer.objects.aggregate(
+        balance=Sum('balance_amount')
+    )['balance'] or Decimal(0)
+
+    last_entries = MilkEntry.objects.select_related('customer').order_by('-date')[:10]
+
+    return render(request, 'accounts/home.html', {
+        'total_customers': total_customers,
+        'total_litres': total_litres,
+        'total_amount': total_amount,
+        'total_balance': total_balance,
+        'last_entries': last_entries,
+    })
+
 # ...existing code...
 
 @login_required(login_url='login')
 def customer_list(request):
     customers = Customer.objects.all()
+
     for customer in customers:
-        total_ml = MilkEntry.objects.filter(customer=customer).aggregate(total=Sum('quantity_ml'))['total'] or 0
-        customer.total_ml = total_ml
-        customer.total_litres = round(Decimal(total_ml) / Decimal(1000), 2) if total_ml else Decimal(0)
-    return render(request, 'accounts/customer_list.html', {'customers': customers})
+        total_ml = customer.milk_entries.aggregate(
+            total=Sum('quantity_ml')
+        )['total'] or 0
+        customer.total_litres = round(Decimal(total_ml) / Decimal(1000), 2)
+
+    return render(request, 'accounts/customer_list.html', {
+        'customers': customers
+    })
+
 
 @login_required(login_url='login')
 def customer_detail(request, customer_id):
@@ -98,16 +99,18 @@ def customer_detail(request, customer_id):
     return render(request, 'accounts/customer_detail.html', context)
 
 @login_required(login_url='login')
+@require_http_methods(["GET", "POST"])
 def add_entry(request):
     if request.method == 'POST':
         form = MilkEntryForm(request.POST)
         if form.is_valid():
             customer = form.cleaned_data.get('customer')
-            name = form.cleaned_data.get('customer_name')
+            customer_name = form.cleaned_data.get('customer_name')
 
+            # CREATE CUSTOMER IF NOT SELECTED
             if not customer:
                 customer, _ = Customer.objects.get_or_create(
-                    name=name.strip()
+                    name=customer_name.strip()
                 )
 
             entry = MilkEntry.objects.create(
@@ -116,7 +119,7 @@ def add_entry(request):
                 quantity_ml=form.cleaned_data['quantity_ml']
             )
 
-            # UPDATE CUSTOMER BALANCE (YOU MISSED THIS)
+            # 🔥 UPDATE BALANCE (THIS FIXES YOUR ISSUE)
             customer.balance_amount += entry.amount
             customer.save(update_fields=['balance_amount'])
 
@@ -127,6 +130,7 @@ def add_entry(request):
     return render(request, 'accounts/entry_form.html', {'form': form})
 
 @login_required(login_url='login')
+@require_http_methods(["GET", "POST"])
 def edit_entry(request, entry_id):
     entry = get_object_or_404(MilkEntry, id=entry_id)
 
@@ -134,25 +138,34 @@ def edit_entry(request, entry_id):
         form = MilkEntryForm(request.POST, instance=entry)
         if form.is_valid():
             old_amount = entry.amount
-            updated = form.save()
-            diff = updated.amount - old_amount
+            updated_entry = form.save()
 
-            updated.customer.balance_amount += diff
-            updated.customer.save(update_fields=['balance_amount'])
+            diff = updated_entry.amount - old_amount
+            customer = updated_entry.customer
+            customer.balance_amount += diff
+            customer.save(update_fields=['balance_amount'])
 
-            return redirect('accounts:customer_detail', customer_id=entry.customer.id)
+            return redirect('accounts:customer_detail', customer_id=customer.id)
     else:
         form = MilkEntryForm(instance=entry)
 
-    return render(request, 'accounts/entry_form.html', {'form': form})
+    return render(request, 'accounts/entry_form.html', {
+        'form': form,
+        'title': 'Edit Milk Entry'
+    })
 
 @login_required(login_url='login')
 @require_http_methods(["POST"])
 def delete_entry(request, entry_id):
     entry = get_object_or_404(MilkEntry, id=entry_id)
-    customer_id = entry.customer.id
+    customer = entry.customer
+
+    customer.balance_amount -= entry.amount
+    customer.save(update_fields=['balance_amount'])
+
     entry.delete()
-    return redirect('accounts:customer_detail', customer_id=customer_id)
+    return redirect('accounts:customer_detail', customer_id=customer.id)
+
 
 @login_required(login_url='login')
 @require_http_methods(["GET", "POST"])
