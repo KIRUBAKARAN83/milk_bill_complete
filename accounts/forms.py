@@ -1,3 +1,23 @@
+from django import forms
+from .models import Customer, MilkEntry
+
+
+class CustomerForm(forms.ModelForm):
+    class Meta:
+        model = Customer
+        fields = ['name', 'balance_amount']
+        widgets = {
+            'name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter customer name'
+            }),
+            'balance_amount': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01'
+            }),
+        }
+
+
 class MilkEntryForm(forms.ModelForm):
     customer_name = forms.CharField(
         required=False,
