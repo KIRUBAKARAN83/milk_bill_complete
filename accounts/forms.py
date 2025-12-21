@@ -33,9 +33,7 @@ class MilkEntryForm(forms.ModelForm):
         model = MilkEntry
         fields = ['customer', 'customer_name', 'date', 'quantity_ml']
         widgets = {
-            'customer': forms.Select(attrs={
-                'class': 'form-select'
-            }),
+            'customer': forms.Select(attrs={'class': 'form-select'}),
             'date': forms.DateInput(attrs={
                 'type': 'date',
                 'class': 'form-control'
@@ -52,10 +50,21 @@ class MilkEntryForm(forms.ModelForm):
         customer = cleaned_data.get('customer')
         customer_name = cleaned_data.get('customer_name')
 
-        # STRICT RULE: one must exist
+        # Normalize input
+        if customer_name:
+            customer_name = customer_name.strip()
+            cleaned_data['customer_name'] = customer_name
+
+        # ❌ both empty → INVALID
         if not customer and not customer_name:
             raise forms.ValidationError(
-                "Select an existing customer or enter a new customer name."
+                "Select an existing customer OR enter a new customer name."
+            )
+
+        # ❌ both filled → INVALID
+        if customer and customer_name:
+            raise forms.ValidationError(
+                "Please choose only ONE: existing customer OR new customer name."
             )
 
         return cleaned_data
