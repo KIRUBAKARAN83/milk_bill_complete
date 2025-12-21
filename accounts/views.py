@@ -98,43 +98,53 @@ def customer_detail(request, customer_id):
     return render(request, 'accounts/customer_detail.html', context)
 
 @login_required(login_url='login')
-@require_http_methods(["GET", "POST"])
 def add_entry(request):
     if request.method == 'POST':
         form = MilkEntryForm(request.POST)
         if form.is_valid():
             customer = form.cleaned_data.get('customer')
-            new_name = form.cleaned_data.get('customer_name')
-            
-            if not customer and new_name:
-                customer, created = Customer.objects.get_or_create(
-                    name=new_name.strip()
+            name = form.cleaned_data.get('customer_name')
+
+            if not customer:
+                customer, _ = Customer.objects.get_or_create(
+                    name=name.strip()
                 )
-            
-            if customer:
-                entry = MilkEntry.objects.create(
-                    customer=customer,
-                    date=form.cleaned_data['date'],
-                    quantity_ml=form.cleaned_data['quantity_ml']
-                )
-                return redirect('accounts:customer_list')
+
+            entry = MilkEntry.objects.create(
+                customer=customer,
+                date=form.cleaned_data['date'],
+                quantity_ml=form.cleaned_data['quantity_ml']
+            )
+
+            # UPDATE CUSTOMER BALANCE (YOU MISSED THIS)
+            customer.balance_amount += entry.amount
+            customer.save(update_fields=['balance_amount'])
+
+            return redirect('accounts:customer_list')
     else:
         form = MilkEntryForm()
-    
+
     return render(request, 'accounts/entry_form.html', {'form': form})
 
 @login_required(login_url='login')
-@require_http_methods(["GET", "POST"])
 def edit_entry(request, entry_id):
     entry = get_object_or_404(MilkEntry, id=entry_id)
+
     if request.method == 'POST':
         form = MilkEntryForm(request.POST, instance=entry)
         if form.is_valid():
-            form.save()
+            old_amount = entry.amount
+            updated = form.save()
+            diff = updated.amount - old_amount
+
+            updated.customer.balance_amount += diff
+            updated.customer.save(update_fields=['balance_amount'])
+
             return redirect('accounts:customer_detail', customer_id=entry.customer.id)
     else:
         form = MilkEntryForm(instance=entry)
-    return render(request, 'accounts/entry_form.html', {'form': form, 'title': 'Edit Milk Entry'})
+
+    return render(request, 'accounts/entry_form.html', {'form': form})
 
 @login_required(login_url='login')
 @require_http_methods(["POST"])
