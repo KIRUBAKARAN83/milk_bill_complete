@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from decimal import Decimal
 import dj_database_url
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -7,13 +8,18 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # ─────────────────────────────
 # SECURITY
 # ─────────────────────────────
-SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-change-me-please')
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-change-me')
 DEBUG = False
 
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = [
+    "localhost",
+    "127.0.0.1",
+    ".onrender.com",
+    ".railway.app",
+]
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-SECURE_SSL_REDIRECT = True
+SECURE_SSL_REDIRECT = False
 
 # ─────────────────────────────
 # APPLICATIONS
@@ -71,19 +77,23 @@ TEMPLATES = [
 ]
 
 # ─────────────────────────────
-# DATABASE (SAFE FOR RENDER + LOCAL)
+# DATABASE (POSTGRES FIRST)
 # ─────────────────────────────
 DATABASES = {
     'default': dj_database_url.config(
+        env='DATABASE_URL',
         default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
-        conn_max_age=600
+        conn_max_age=600,
+        ssl_require=True,
     )
 }
 
 # ─────────────────────────────
 # PASSWORD VALIDATION
 # ─────────────────────────────
-AUTH_PASSWORD_VALIDATORS = []
+AUTH_PASSWORD_VALIDATORS = [
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
+]
 
 # ─────────────────────────────
 # INTERNATIONALIZATION
@@ -94,11 +104,10 @@ USE_I18N = True
 USE_TZ = True
 
 # ─────────────────────────────
-# STATIC & MEDIA FILES
+# STATIC & MEDIA
 # ─────────────────────────────
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 
 MEDIA_URL = '/media/'
@@ -112,20 +121,18 @@ LOGIN_REDIRECT_URL = 'accounts:home'
 LOGOUT_REDIRECT_URL = 'login'
 
 # ─────────────────────────────
-# CSRF (RENDER HTTPS FIX)
+# CSRF
 # ─────────────────────────────
 CSRF_TRUSTED_ORIGINS = [
     'https://*.onrender.com',
+    'https://*.railway.app',
 ]
 
 # ─────────────────────────────
-# TWILIO (OPTIONAL)
+# BUSINESS CONFIG
 # ─────────────────────────────
-TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID', '')
-TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN', '')
-TWILIO_WHATSAPP_NUMBER = os.environ.get(
-    'TWILIO_WHATSAPP_NUMBER',
-    'whatsapp:+14155238886'
+PRICE_PER_LITRE = Decimal(
+    os.environ.get("PRICE_PER_LITRE", "50")
 )
 
 # ─────────────────────────────
