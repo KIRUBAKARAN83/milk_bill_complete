@@ -101,6 +101,7 @@ def customer_detail(request, customer_id):
     return render(request, 'accounts/customer_detail.html', context)
 
 @login_required(login_url='login')
+@require_http_methods(["GET", "POST"])
 def add_entry(request):
     if request.method == 'POST':
         form = MilkEntryForm(request.POST)
