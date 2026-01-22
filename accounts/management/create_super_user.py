@@ -5,7 +5,7 @@ class Command(BaseCommand):
     help = "Create default superuser if not exists"
 
     def handle(self, *args, **kwargs):
-        username = "kiruba_karan"
+        username = "kiruba_karan_123"
         email = "dhayalankiruba17@gmail.com"
         password = "kiruba@123"
 
