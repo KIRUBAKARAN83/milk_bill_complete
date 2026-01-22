@@ -92,7 +92,10 @@ DATABASES = {
 # PASSWORD VALIDATION
 # ─────────────────────────────
 AUTH_PASSWORD_VALIDATORS = [
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
 # ─────────────────────────────
@@ -139,3 +142,26 @@ PRICE_PER_LITRE = Decimal(
 # DEFAULT FIELD
 # ─────────────────────────────
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# ─────────────────────────────
+# SUPERUSER AUTO-CREATION (optional)
+# ─────────────────────────────
+# If you want to auto-create a superuser at startup, you can add logic in apps.py
+# Example snippet (to be placed in accounts/apps.py):
+#
+# from django.apps import AppConfig
+# from django.contrib.auth import get_user_model
+# import os
+#
+# class AccountsConfig(AppConfig):
+#     default_auto_field = 'django.db.models.BigAutoField'
+#     name = 'accounts'
+#
+#     def ready(self):
+#         User = get_user_model()
+#         if not User.objects.filter(is_superuser=True).exists():
+#             User.objects.create_superuser(
+#                 username=os.getenv("DJANGO_SUPERUSER_USERNAME", "admin"),
+#                 email=os.getenv("DJANGO_SUPERUSER_EMAIL", "admin@example.com"),
+#                 password=os.getenv("DJANGO_SUPERUSER_PASSWORD", "password123")
+#             )
