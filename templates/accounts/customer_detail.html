@@ -2,118 +2,312 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ customer.name }} - Account</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="{% static 'accounts/js/chart.js' %}"></script>
-    <style>
-        body { background: #f8f9fa; }
-        .customer-header { background: #007bff; color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
-        .month-card { border-left: 4px solid #007bff; margin-bottom: 15px; }
-        .btn-sm { padding: 4px 8px; font-size: 12px; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ customer.name }} - Account</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="{% static 'accounts/js/chart.js' %}"></script>
+
+  <style>
+    :root{
+      --bg: #f4f6f9;
+      --card: #ffffff;
+      --muted: #7b8a99;
+      --accent-1: #1e3c72;
+      --accent-2: #2a5298;
+      --accent-3: #0d6efd;
+      --success: #2ecc71;
+      --danger: #e63946;
+      --glass: rgba(255,255,255,0.06);
+      --soft-shadow: 0 10px 30px rgba(16,24,40,0.06);
+    }
+
+    html,body{height:100%}
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--bg);
+      color: #24303a;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+
+    .container { max-width: 1100px; }
+
+    /* Header */
+    .customer-header {
+      background: linear-gradient(90deg,var(--accent-1),var(--accent-2));
+      color: #fff;
+      padding: 22px;
+      border-radius: 12px;
+      margin-bottom: 22px;
+      box-shadow: var(--soft-shadow);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      animation: slideInUp 700ms cubic-bezier(.2,.9,.2,1);
+    }
+    .customer-header h2 { margin:0; font-weight:800; letter-spacing:0.2px; font-size:22px; }
+    .customer-header p { margin:0; color: rgba(255,255,255,0.92); font-weight:600; }
+
+    .action-group .btn {
+      border-radius:10px;
+      padding:8px 12px;
+      font-weight:700;
+      box-shadow: 0 6px 18px rgba(16,24,40,0.06);
+      transition: transform .22s ease, box-shadow .22s ease;
+    }
+    .action-group .btn:hover { transform: translateY(-4px); box-shadow: 0 18px 40px rgba(16,24,40,0.10); }
+
+    /* Month card */
+    .month-card {
+      border-left: 6px solid var(--accent-3);
+      margin-bottom: 16px;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 8px 26px rgba(16,24,40,0.04);
+      transition: transform .28s ease, box-shadow .28s ease;
+      background: linear-gradient(180deg,#fff,#fbfdff);
+    }
+    .month-card:hover { transform: translateY(-6px); box-shadow: 0 20px 50px rgba(16,24,40,0.06); }
+    .month-card .card-header { background: transparent; border-bottom: none; padding:14px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .month-card .card-header h5 { margin:0; font-weight:700; color:var(--accent-1); }
+    .month-card .card-body { padding:0; }
+
+    /* Table */
+    .table { margin-bottom:0; border-collapse:separate; border-spacing:0; }
+    .table thead th {
+      background: linear-gradient(90deg,#f6f8fb,#f1f4f8);
+      color:var(--muted);
+      font-weight:700;
+      padding:12px 18px;
+      border-bottom: none;
+    }
+    .table tbody td {
+      padding:12px 18px;
+      vertical-align:middle;
+      border-top:1px solid #f3f4f6;
+      color: #24303a;
+    }
+    .table tbody tr {
+      transition: transform .22s ease, background .22s ease, box-shadow .22s ease;
+    }
+    .table tbody tr:hover {
+      background: linear-gradient(90deg, rgba(34,47,62,0.02), rgba(34,47,62,0.01));
+      transform: translateY(-4px);
+      box-shadow: 0 8px 20px rgba(16,24,40,0.04);
+    }
+    .table tfoot td { padding:12px 18px; background:#fbfdff; }
+
+    /* Buttons small */
+    .btn-sm {
+      padding:6px 10px;
+      font-size:13px;
+      border-radius:8px;
+      font-weight:700;
+    }
+
+    /* Chart container */
+    .chart-card {
+      border-radius:12px;
+      padding:16px;
+      background: linear-gradient(180deg,#fff,#fbfdff);
+      box-shadow: var(--soft-shadow);
+      height:100%;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      transition: transform .28s ease;
+    }
+    .chart-card:hover { transform: translateY(-6px); }
+
+    /* Empty state */
+    .no-entries { padding:18px; border-radius:10px; background:linear-gradient(90deg,#fff,#fbfdff); box-shadow: 0 8px 20px rgba(16,24,40,0.03); }
+
+    /* Responsive tweaks */
+    @media (max-width: 991px) {
+      .customer-header { flex-direction:column; align-items:flex-start; gap:12px; }
+      .action-group { width:100%; display:flex; gap:8px; flex-wrap:wrap; }
+    }
+
+    /* Animations */
+    @keyframes slideInUp { from{ opacity:0; transform: translateY(12px);} to{ opacity:1; transform: translateY(0);} }
+    @keyframes popIn { 0%{ transform: scale(.98) translateY(6px); opacity:0 } 60%{ transform: scale(1.02) translateY(-6px); opacity:1 } 100%{ transform: scale(1) translateY(0) } }
+
+    /* Tiny helpers */
+    .text-success { color: var(--success) !important; font-weight:700; }
+    .text-danger { color: var(--danger) !important; font-weight:700; }
+    a.btn-outline-danger { border-radius:8px; }
+  </style>
 </head>
 
 <body>
-    <div class="container mt-4">
-        <!-- Customer Header -->
-        <div class="customer-header">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h2>{{ customer.name }}</h2>
-                    <p class="mb-0">Balance Amount: <strong class="{% if customer.balance_amount > 0 %}text-success{% elif customer.balance_amount < 0 %}text-danger{% endif %}">₹ {{ customer.balance_amount|floatformat:2 }}</strong></p>
-                </div>
-                <div class="d-flex gap-2">
-                    <a href="{% url 'accounts:edit_customer' customer.id %}" class="btn btn-warning btn-sm">✏️ Edit</a>
-                    <form method="post" action="{% url 'accounts:delete_customer' customer.id %}" style="display:inline;" onsubmit="return confirm('Delete this customer? All records will be removed.');">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-danger btn-sm">🗑️ Delete</button>
-                    </form>
-                </div>
-            </div>
-        </div>
+  <div class="container mt-4">
+    <!-- Customer Header -->
+    <div class="customer-header">
+      <div>
+        <h2>{{ customer.name }}</h2>
+        <p class="mb-0">Balance Amount:
+          <strong class="{% if customer.balance_amount > 0 %}text-success{% elif customer.balance_amount < 0 %}text-danger{% endif %}">
+            ₹ {{ customer.balance_amount|floatformat:2 }}
+          </strong>
+        </p>
+      </div>
 
-        <!-- Action Buttons -->
-        <div class="mb-3 d-flex gap-2 flex-wrap">
-            <a href="{% url 'accounts:add_entry' %}" class="btn btn-primary">➕ Add Entry</a>
-            <a href="{% url 'accounts:bill_pdf' customer.id %}" class="btn btn-danger">📄 Download Full Bill</a>
-            <a href="{% url 'accounts:customer_list' %}" class="btn btn-secondary">← Back to Customers</a>
-        </div>
+      <div class="action-group d-flex align-items-center">
+        <a href="{% url 'accounts:add_entry' %}" class="btn btn-light btn-sm">➕ Add Entry</a>
+        <a href="{% url 'accounts:bill_pdf' customer.id %}" class="btn btn-danger btn-sm">📄 Download Full Bill</a>
+        <a href="{% url 'accounts:customer_list' %}" class="btn btn-outline-light btn-sm">← Back to Customers</a>
+        <a href="https://web.whatsapp.com/" class="btn btn-success btn-sm">💬 Send via WhatsApp</a>
 
-        <!-- Month-wise Accounts -->
-        <div class="row">
-            <div class="col-md-8">
-                <h4 class="mb-3">Monthly Accounts</h4>
-                
-                {% if months_data %}
-                    {% for month in months_data %}
-                    <div class="card month-card">
-                        <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                            <h5 class="mb-0">{{ month.month_name }}</h5>
-                            <a href="{% url 'accounts:bill_pdf_month' customer.id month.year month.month %}" class="btn btn-sm btn-outline-danger">📥 Download</a>
-                        </div>
-                        <div class="card-body p-0">
-                            <table class="table table-sm mb-0">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>Date</th>
-                                        <th class="text-end">Qty (ml)</th>
-                                        <th class="text-end">Litres</th>
-                                        <th class="text-end">Amount (₹)</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for entry in month.entries %}
-                                    <tr>
-                                        <td>{{ entry.date|date:"d-m-Y" }}</td>
-                                        <td class="text-end">{{ entry.quantity_ml }}</td>
-                                        <td class="text-end">{{ entry.litres|floatformat:3 }}</td>
-                                        <td class="text-end">₹ {{ entry.amount|floatformat:2 }}</td>
-                                        <td>
-                                            <a href="{% url 'accounts:edit_entry' entry.id %}" class="btn btn-sm btn-warning">Edit</a>
-                                            <form method="post" action="{% url 'accounts:delete_entry' entry.id %}" style="display:inline;" onsubmit="return confirm('Delete this entry?');">
-                                                {% csrf_token %}
-                                                <button type="submit" class="btn btn-sm btn-danger">Delete</button>
-                                            </form>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                                <tfoot class="table-light fw-bold">
-                                    <tr>
-                                        <td colspan="2" class="text-end">Total:</td>
-                                        <td class="text-end">{{ month.total_litres }} L</td>
-                                        <td class="text-end">₹ {{ month.total_amount }}</td>
-                                        <td></td>
-                                    </tr>
-                                </tfoot>
-                            </table>
-                        </div>
-                    </div>
-                    {% endfor %}
-                {% else %}
-                    <div class="alert alert-info">No entries found. <a href="{% url 'accounts:add_entry' %}">Add one now</a></div>
-                {% endif %}
-            </div>
-
-            <!-- Chart Sidebar -->
-            <div class="col-md-4">
-                <h4 class="mb-3">Monthly Chart</h4>
-                <div style="position: relative; height: 400px;">
-                    <canvas id="milkChart"></canvas>
-                </div>
-            </div>
+        <div class="ms-2 d-flex gap-2">
+          <a href="{% url 'accounts:edit_customer' customer.id %}" class="btn btn-warning btn-sm">✏️ Edit</a>
+          <form method="post" action="{% url 'accounts:delete_customer' customer.id %}" style="display:inline;" onsubmit="return confirm('Delete this customer? All records will be removed.');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-light btn-sm" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,0.12);">🗑️ Delete</button>
+          </form>
         </div>
+      </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            loadMilkChart("{% url 'accounts:chart_data' customer.id %}", 'milkChart');
-        });
-    </script>
+    <!-- Month-wise Accounts -->
+    <div class="row g-4">
+      <div class="col-lg-8">
+        <h4 class="mb-3" style="font-weight:800;color:var(--accent-1)">Monthly Accounts</h4>
+
+        {% if months_data %}
+          {% for month in months_data %}
+            <div class="card month-card">
+              <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">{{ month.month_name }}</h5>
+                <a href="{% url 'accounts:bill_pdf_month' customer.id month.year month.month %}" class="btn btn-sm btn-outline-danger">📥 Download</a>
+              </div>
+
+              <div class="card-body p-0">
+                <div style="overflow:auto;">
+                  <table class="table table-sm mb-0">
+                    <thead>
+                      <tr>
+                        <th>Date</th>
+                        <th class="text-end">Qty (ml)</th>
+                        <th class="text-end">Litres</th>
+                        <th class="text-end">Amount (₹)</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for entry in month.entries %}
+                        <tr>
+                          <td>{{ entry.date|date:"d-m-Y" }}</td>
+                          <td class="text-end">{{ entry.quantity_ml }}</td>
+                          <td class="text-end">{{ entry.litres|floatformat:3 }}</td>
+                          <td class="text-end">₹ {{ entry.amount|floatformat:2 }}</td>
+                          <td>
+                            <a href="{% url 'accounts:edit_entry' entry.id %}" class="btn btn-sm btn-warning">Edit</a>
+                            <form method="post" action="{% url 'accounts:delete_entry' entry.id %}" style="display:inline;" onsubmit="return confirm('Delete this entry?');">
+                              {% csrf_token %}
+                              <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                            </form>
+                          </td>
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                    <tfoot class="table-light fw-bold">
+                      <tr>
+                        <td colspan="2" class="text-end">Total:</td>
+                        <td class="text-end">{{ month.total_litres }} L</td>
+                        <td class="text-end">₹ {{ month.total_amount }}</td>
+                        <td></td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="no-entries">
+            <div class="alert alert-info mb-0">No entries found. <a href="{% url 'accounts:add_entry' %}">Add one now</a></div>
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Chart Sidebar -->
+      <div class="col-lg-4">
+        <h4 class="mb-3" style="font-weight:800;color:var(--accent-1)">Monthly Chart</h4>
+        <div class="chart-card">
+          <div style="flex:1; position:relative; height: 360px;">
+            <canvas id="milkChart" aria-label="Monthly milk chart" role="img"></canvas>
+          </div>
+          <div style="display:flex;gap:8px;justify-content:space-between;align-items:center;">
+            <div style="color:var(--muted);font-weight:700;font-size:13px;">Monthly litres overview</div>
+            <div style="font-size:13px;color:var(--muted)">Updated live</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Load chart data via helper from static JS
+      if (typeof loadMilkChart === 'function') {
+        loadMilkChart("{% url 'accounts:chart_data' customer.id %}", 'milkChart');
+      } else {
+        // Fallback: attempt to fetch and render a simple chart if helper missing
+        fetch("{% url 'accounts:chart_data' customer.id %}")
+          .then(r => r.json())
+          .then(data => {
+            const ctx = document.getElementById('milkChart').getContext('2d');
+            new Chart(ctx, {
+              type: 'bar',
+              data: {
+                labels: data.labels || [],
+                datasets: [{
+                  label: 'Litres',
+                  data: data.values || [],
+                  backgroundColor: 'rgba(46, 81, 255, 0.85)',
+                  borderRadius: 6,
+                  barThickness: 18
+                }]
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: { display: false },
+                  tooltip: { mode: 'index', intersect: false }
+                },
+                scales: {
+                  x: { grid: { display: false }, ticks: { color: '#6b7280' } },
+                  y: { beginAtZero: true, ticks: { color: '#6b7280' }, grid: { color: 'rgba(15,23,42,0.04)' } }
+                }
+              }
+            });
+          })
+          .catch(() => { /* silent fallback */ });
+      }
+
+      // Keyboard shortcuts
+      document.addEventListener('keydown', function(e) {
+        if (e.ctrlKey && !e.shiftKey && !e.altKey) {
+          const k = e.key.toLowerCase();
+          if (k === 'e') {
+            e.preventDefault();
+            window.location.href = "{% url 'accounts:add_entry' %}";
+          } else if (k === 'd') {
+            e.preventDefault();
+            window.location.href = "{% url 'accounts:home' %}";
+          } else if (k === 'c') {
+            e.preventDefault();
+            window.location.href = "{% url 'accounts:customer_list' %}";
+          }
+        }
+      });
+    });
+  </script>
 </body>
 </html>
