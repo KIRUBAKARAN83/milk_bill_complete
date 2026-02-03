@@ -126,9 +126,7 @@ def generate_bill_pdf(
     ]))
 
     # ---------------- ENTRIES TABLE ----------------
-    table_data = [
-        ["Date", "Qty (ml)", "Litres", "Rate (₹)", "Amount (₹)"]
-    ]
+    table_data = [["Date", "Qty (ml)", "Litres", "Rate (₹)", "Amount (₹)"]]
 
     if entries:
         for entry in entries:
@@ -150,46 +148,10 @@ def generate_bill_pdf(
         f"{current_amount:.2f}",
     ])
 
-    MAX_ROWS_SINGLE_PAGE = 22
-
-    if len(entries) <= MAX_ROWS_SINGLE_PAGE:
-        # 🔹 Single-page attempt
-        entries_table = Table(
-            table_data,
-            colWidths=[1.15 * inch] * 5,
-            splitByRow=0,
-        )
-
-        elements.append(
-            KeepTogether([
-                Paragraph("Customer Summary", heading_style),
-                summary_table,
-                Spacer(1, 6),
-                Paragraph("Milk Entries", heading_style),
-                entries_table,
-                Spacer(1, 8),
-                Paragraph("Thank you for your business.", footer_style),
-            ])
-        )
-    else:
-        # 🔹 Multi-page safe fallback
-        entries_table = Table(
-            table_data,
-            colWidths=[1.15 * inch] * 5,
-        )
-
-    elements.extend([
-    Paragraph("Customer Summary", heading_style),
-    summary_table,
-    Spacer(1, 6),
-    Paragraph("Milk Entries", heading_style),
-    entries_table,
-
-    KeepTogether([
-        Spacer(1, 6),
-        Paragraph("Thank you for your business.", footer_style),
-    ]),
-])
+    entries_table = Table(
+        table_data,
+        colWidths=[1.15 * inch] * 5,
+    )
 
     entries_table.setStyle(TableStyle([
         ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
@@ -198,6 +160,38 @@ def generate_bill_pdf(
         ("GRID", (0, 0), (-1, -1), 0.3, colors.grey),
         ("LINEABOVE", (0, -1), (-1, -1), 1, colors.black),
     ]))
+
+    # ---------------- LAYOUT LOGIC ----------------
+    MAX_ROWS_SINGLE_PAGE = 22
+
+    if len(entries) <= MAX_ROWS_SINGLE_PAGE:
+        # ✅ Try to keep everything on one page
+        entries_table.splitByRow = 0
+
+        elements.append(
+            KeepTogether([
+                Paragraph("Customer Summary", heading_style),
+                summary_table,
+                Spacer(1, 6),
+                Paragraph("Milk Entries", heading_style),
+                entries_table,
+                Spacer(1, 6),
+                Paragraph("Thank you for your business.", footer_style),
+            ])
+        )
+    else:
+        # ✅ Allow multi-page but keep footer with last rows
+        elements.extend([
+            Paragraph("Customer Summary", heading_style),
+            summary_table,
+            Spacer(1, 6),
+            Paragraph("Milk Entries", heading_style),
+            entries_table,
+            KeepTogether([
+                Spacer(1, 6),
+                Paragraph("Thank you for your business.", footer_style),
+            ]),
+        ])
 
     doc.build(elements)
     buffer.seek(0)
