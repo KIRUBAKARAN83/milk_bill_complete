@@ -59,7 +59,7 @@ def generate_bill_pdf(
     normal_style = ParagraphStyle(
         'NormalText',
         parent=styles['Normal'],
-        fontSize=10,
+        fontSize=9,   # slightly smaller to save space
         spaceAfter=4
     )
 
@@ -68,7 +68,7 @@ def generate_bill_pdf(
     # ---------------- TITLE ----------------
     elements.append(Paragraph("Milk Billing Invoice", title_style))
 
-    # ---------------- BILLING PERIOD (FIXED) ----------------
+    # ---------------- BILLING PERIOD ----------------
     if entries:
         start_date = min(e.date for e in entries)
         end_date = max(e.date for e in entries)
@@ -90,7 +90,7 @@ def generate_bill_pdf(
         )
     )
 
-    elements.append(Spacer(1, 0.2 * inch))
+    elements.append(Spacer(1, 0.15 * inch))
 
     # ---------------- CUSTOMER SUMMARY ----------------
     previous_balance = Decimal(customer.balance_amount or 0)
@@ -104,7 +104,7 @@ def generate_bill_pdf(
             ["Customer Name", customer.name or "N/A"],
             ["Previous Balance (Unpaid)", f"₹ {previous_balance:.2f}"],
             ["Total Litres", f"{total_litres:.2f} L"],
-            ["Current Billing Amount", f"₹ {current_amount:.2f}"],
+            ["Current Month Amount", f"₹ {current_amount:.2f}"],
             ["Total Payable", f"₹ {total_payable:.2f}"],
         ],
         colWidths=[3 * inch, 2 * inch]
@@ -115,12 +115,14 @@ def generate_bill_pdf(
         ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
         ('BACKGROUND', (0, -1), (-1, -1), colors.lightgrey),
         ('ALIGN', (1, 0), (-1, -1), 'RIGHT'),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
         ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
     ]))
 
     elements.append(summary_table)
-    elements.append(Spacer(1, 0.25 * inch))
+    elements.append(Spacer(1, 0.2 * inch))
 
     # ---------------- ENTRIES TABLE ----------------
     elements.append(Paragraph("Milk Entries", heading_style))
@@ -141,6 +143,7 @@ def generate_bill_pdf(
     else:
         table_data.append(["No entries", "", "", "", ""])
 
+    # Add totals row
     table_data.append([
         "TOTAL",
         str(total_ml),
@@ -149,25 +152,38 @@ def generate_bill_pdf(
         f"{current_amount:.2f}",
     ])
 
-    entries_table = Table(table_data, colWidths=[1.2 * inch] * 5)
+    # --- Dynamic row height calculation ---
+    # Available height for entries table ≈ 6.5 inches (A4 minus margins and summary)
+    available_height = 6.5 * inch
+    row_count = len(table_data)
+    row_height = available_height / row_count
+
+    entries_table = Table(
+        table_data,
+        colWidths=[1.0*inch, 1.0*inch, 1.0*inch, 1.0*inch, 1.2*inch],
+        rowHeights=[row_height] * row_count
+    )
 
     entries_table.setStyle(TableStyle([
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
         ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 8),  # compact font
         ('ALIGN', (1, 1), (-1, -1), 'RIGHT'),
         ('LINEBELOW', (0, 0), (-1, 0), 1, colors.black),
         ('LINEABOVE', (0, -1), (-1, -1), 1, colors.black),
         ('GRID', (0, 0), (-1, -1), 0.25, colors.grey),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 1),
+        ('TOPPADDING', (0, 0), (-1, -1), 1),
     ]))
 
     elements.append(entries_table)
-    elements.append(Spacer(1, 0.3 * inch))
+    elements.append(Spacer(1, 0.2 * inch))
 
     # ---------------- FOOTER ----------------
     footer_style = ParagraphStyle(
         'Footer',
         parent=styles['Normal'],
-        fontSize=9,
+        fontSize=8,
         alignment=TA_CENTER,
         textColor=colors.grey
     )
