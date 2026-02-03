@@ -160,17 +160,19 @@ def generate_bill_pdf(
             splitByRow=0,
         )
 
-        elements.append(
-            KeepTogether([
-                Paragraph("Customer Summary", heading_style),
-                summary_table,
-                Spacer(1, 6),
-                Paragraph("Milk Entries", heading_style),
-                entries_table,
-                Spacer(1, 8),
-                Paragraph("Thank you for your business.", footer_style),
-            ])
-        )
+      elements.extend([
+    Paragraph("Customer Summary", heading_style),
+    summary_table,
+    Spacer(1, 6),
+    Paragraph("Milk Entries", heading_style),
+    entries_table,
+
+    KeepTogether([
+        Spacer(1, 6),
+        Paragraph("Thank you for your business.", footer_style),
+    ]),
+])
+
     else:
         # 🔹 Multi-page safe fallback
         entries_table = Table(
