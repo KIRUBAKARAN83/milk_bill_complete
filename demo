@@ -1,0 +1,201 @@
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from reportlab.platypus import (
+    SimpleDocTemplate,
+    Table,
+    TableStyle,
+    Paragraph,
+    Spacer,
+    KeepTogether,
+)
+from reportlab.lib import colors
+from reportlab.lib.enums import TA_CENTER
+from datetime import datetime
+from io import BytesIO
+from decimal import Decimal
+
+
+def generate_bill_pdf(
+    customer,
+    entries,
+    total_ml,
+    total_litres,
+    total_amount,
+    price_per_litre,
+    year=None,
+    month=None,
+):
+    buffer = BytesIO()
+
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        topMargin=0.4 * inch,
+        bottomMargin=0.4 * inch,
+        leftMargin=0.4 * inch,
+        rightMargin=0.4 * inch,
+    )
+
+    styles = getSampleStyleSheet()
+
+    title_style = ParagraphStyle(
+        "Title",
+        parent=styles["Heading1"],
+        fontSize=18,
+        alignment=TA_CENTER,
+        spaceAfter=6,
+        fontName="Helvetica-Bold",
+    )
+
+    heading_style = ParagraphStyle(
+        "Heading",
+        parent=styles["Heading3"],
+        fontSize=11,
+        spaceAfter=4,
+        fontName="Helvetica-Bold",
+    )
+
+    normal_style = ParagraphStyle(
+        "NormalText",
+        parent=styles["Normal"],
+        fontSize=9,
+        spaceAfter=2,
+    )
+
+    footer_style = ParagraphStyle(
+        "Footer",
+        parent=styles["Normal"],
+        fontSize=8,
+        alignment=TA_CENTER,
+        textColor=colors.grey,
+    )
+
+    elements = []
+
+    # ---------------- TITLE ----------------
+    elements.append(Paragraph("Milk Billing Invoice", title_style))
+
+    # ---------------- BILLING PERIOD ----------------
+    if entries:
+        start_date = min(e.date for e in entries)
+        end_date = max(e.date for e in entries)
+
+        if start_date.month == end_date.month and start_date.year == end_date.year:
+            period_text = f"Billing Period: {start_date.strftime('%B %Y')}"
+        else:
+            period_text = (
+                f"Billing Period: "
+                f"{start_date.strftime('%d-%m-%Y')} to {end_date.strftime('%d-%m-%Y')}"
+            )
+    else:
+        period_text = "Billing Period: No entries"
+
+    elements.append(
+        Paragraph(
+            f"{period_text}<br/>Generated on: {datetime.now().strftime('%d-%m-%Y %H:%M')}",
+            normal_style,
+        )
+    )
+
+    elements.append(Spacer(1, 6))
+
+    # ---------------- CUSTOMER SUMMARY ----------------
+    previous_balance = Decimal(customer.balance_amount or 0)
+    current_amount = Decimal(total_amount)
+    total_payable = previous_balance + current_amount
+
+    summary_table = Table(
+        [
+            ["Customer Name", customer.name or "N/A"],
+            ["Previous Balance", f"₹ {previous_balance:.2f}"],
+            ["Total Litres", f"{total_litres:.2f} L"],
+            ["Current Amount", f"₹ {current_amount:.2f}"],
+            ["Total Payable", f"₹ {total_payable:.2f}"],
+        ],
+        colWidths=[3 * inch, 2.2 * inch],
+    )
+
+    summary_table.setStyle(TableStyle([
+        ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
+        ("FONTNAME", (0, -1), (-1, -1), "Helvetica-Bold"),
+        ("BACKGROUND", (0, -1), (-1, -1), colors.lightgrey),
+        ("ALIGN", (1, 0), (-1, -1), "RIGHT"),
+        ("GRID", (0, 0), (-1, -1), 0.4, colors.grey),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+    ]))
+
+    # ---------------- ENTRIES TABLE ----------------
+    table_data = [
+        ["Date", "Qty (ml)", "Litres", "Rate (₹)", "Amount (₹)"]
+    ]
+
+    if entries:
+        for entry in entries:
+            table_data.append([
+                entry.date.strftime("%d-%m-%Y") if entry.date else "-",
+                str(entry.quantity_ml),
+                f"{entry.litres:.3f}",
+                f"{Decimal(price_per_litre):.2f}",
+                f"{entry.amount:.2f}",
+            ])
+    else:
+        table_data.append(["No entries", "", "", "", ""])
+
+    table_data.append([
+        "TOTAL",
+        str(total_ml),
+        f"{total_litres:.2f}",
+        f"{Decimal(price_per_litre):.2f}",
+        f"{current_amount:.2f}",
+    ])
+
+    MAX_ROWS_SINGLE_PAGE = 22
+
+    if len(entries) <= MAX_ROWS_SINGLE_PAGE:
+        # 🔹 Single-page attempt
+        entries_table = Table(
+            table_data,
+            colWidths=[1.15 * inch] * 5,
+            splitByRow=0,
+        )
+
+        elements.append(
+            KeepTogether([
+                Paragraph("Customer Summary", heading_style),
+                summary_table,
+                Spacer(1, 6),
+                Paragraph("Milk Entries", heading_style),
+                entries_table,
+                Spacer(1, 8),
+                Paragraph("Thank you for your business.", footer_style),
+            ])
+        )
+    else:
+        # 🔹 Multi-page safe fallback
+        entries_table = Table(
+            table_data,
+            colWidths=[1.15 * inch] * 5,
+        )
+
+        elements.extend([
+            Paragraph("Customer Summary", heading_style),
+            summary_table,
+            Spacer(1, 6),
+            Paragraph("Milk Entries", heading_style),
+            entries_table,
+            Spacer(1, 8),
+            Paragraph("Thank you for your business.", footer_style),
+        ])
+
+    entries_table.setStyle(TableStyle([
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTNAME", (0, -1), (-1, -1), "Helvetica-Bold"),
+        ("ALIGN", (1, 1), (-1, -1), "RIGHT"),
+        ("GRID", (0, 0), (-1, -1), 0.3, colors.grey),
+        ("LINEABOVE", (0, -1), (-1, -1), 1, colors.black),
+    ]))
+
+    doc.build(elements)
+    buffer.seek(0)
+    return buffer
